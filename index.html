@@ -1631,17 +1631,23 @@ function setupVoiceInput() {
     }, 2000);
   };
 
-  // Touch events for mobile
-  micBtn.addEventListener('touchstart', startRecording, { passive: false });
-  micBtn.addEventListener('touchend', stopRecording, { passive: false });
-  micBtn.addEventListener('touchcancel', stopRecording, { passive: false });
-
-  // Mouse events for desktop
-  micBtn.addEventListener('mousedown', startRecording);
-  micBtn.addEventListener('mouseup', stopRecording);
-  micBtn.addEventListener('mouseleave', (e) => {
-    if (isRecording) stopRecording(e);
+  // Click to toggle recording (点击切换模式)
+  micBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    if (APP_STATE.isTyping || APP_STATE.isProcessing) return;
+    
+    if (isRecording) {
+      stopRecording(e);
+    } else {
+      startRecording(e);
+    }
   });
+
+  // Also support touch for mobile
+  micBtn.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    // 不做任何事，等click事件处理
+  }, { passive: false });
 }
 
 // ===== 进度持久化 =====
