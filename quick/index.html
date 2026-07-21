@@ -1,0 +1,1640 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>观澜 · 天赋快速测评</title>
+<meta name="format-detection" content="telephone=no">
+<meta http-equiv="Cache-Control" content="no-cache">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="观澜">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0a0e27">
+<meta name="x5-orientation" content="portrait">
+<meta name="x5-page-mode" content="app">
+<meta property="og:title" content="观澜·天赋快速测评">
+<meta property="og:description" content="5分钟发现你的天赋优势">
+<meta property="og:type" content="website">
+
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg-start: #0a0e27;
+  --bg-mid: #141852;
+  --bg-end: #1a0a3e;
+  --glass-bg: rgba(255,255,255,0.06);
+  --glass-border: rgba(255,255,255,0.12);
+  --text-primary: #e8e6f0;
+  --text-secondary: rgba(232,230,240,0.65);
+  --text-muted: rgba(232,230,240,0.4);
+  --accent-gold: #c9a96e;
+  --accent-warm: #d4a574;
+  --user-msg-bg: linear-gradient(135deg, rgba(139,92,246,0.35), rgba(59,130,246,0.25));
+  --user-msg-border: rgba(139,92,246,0.3);
+  --ai-msg-bg: rgba(255,255,255,0.05);
+  --ai-msg-border: rgba(255,255,255,0.08);
+  --progress-active: linear-gradient(90deg, #c9a96e, #d4a574);
+  --input-bg: rgba(255,255,255,0.08);
+  --font-serif: 'Songti SC', 'Songti SC', 'SimSun', serif;
+  --font-sans: 'PingFang SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+html, body {
+  height: 100%; width: 100%;
+  overflow: hidden;
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+  background: linear-gradient(160deg, var(--bg-start) 0%, var(--bg-mid) 40%, var(--bg-end) 100%);
+  -webkit-font-smoothing: antialiased;
+  touch-action: manipulation;
+}
+
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+
+#app {
+  display: flex; flex-direction: column;
+  height: 100vh; height: 100dvh;
+  max-width: 680px;
+  margin: 0 auto;
+  position: relative;
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+#app.visible { opacity: 1; }
+
+/* ===== Header ===== */
+.header {
+  flex-shrink: 0;
+  padding: 14px 18px 10px;
+  text-align: center;
+  position: relative;
+  z-index: 10;
+  background: linear-gradient(180deg, rgba(10,14,39,0.9) 0%, transparent 100%);
+}
+.header-title {
+  font-family: var(--font-serif);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--accent-gold);
+  letter-spacing: 4px;
+  margin-bottom: 4px;
+}
+.header-subtitle {
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 2px;
+  margin-bottom: 10px;
+}
+.header-badge {
+  display: inline-block;
+  font-size: 9px;
+  color: var(--accent-gold);
+  border: 1px solid rgba(201,169,110,0.3);
+  border-radius: 10px;
+  padding: 2px 10px;
+  margin-bottom: 10px;
+  letter-spacing: 1px;
+}
+
+/* Progress */
+.progress-container { display: flex; align-items: center; gap: 4px; padding: 0 8px; }
+.progress-step {
+  flex: 1; height: 3px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 2px;
+  overflow: hidden;
+  transition: all 0.6s ease;
+  position: relative;
+}
+.progress-step .fill {
+  position: absolute; left: 0; top: 0; height: 100%;
+  width: 0%; border-radius: 2px;
+  background: var(--progress-active);
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.progress-step.active .fill { width: 100%; }
+.progress-step.current .fill {
+  width: 50%;
+  animation: progressPulse 2s ease-in-out infinite;
+}
+@keyframes progressPulse {
+  0%, 100% { width: 30%; opacity: 0.7; }
+  50% { width: 70%; opacity: 1; }
+}
+.stage-labels { display: flex; justify-content: space-between; padding: 5px 8px 0; }
+.stage-label {
+  font-size: 9px;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+  transition: color 0.4s;
+  text-align: center;
+  flex: 1;
+}
+.stage-label.active { color: var(--accent-gold); }
+
+/* ===== Chat Area ===== */
+.chat-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 14px;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+.chat-area-inner {
+  display: flex; flex-direction: column;
+  gap: 14px;
+  min-height: 100%;
+  justify-content: flex-end;
+}
+
+.msg {
+  max-width: 88%;
+  animation: msgIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  line-height: 1.85;
+  font-size: 15px;
+}
+@keyframes msgIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.msg.ai {
+  align-self: flex-start;
+  background: var(--ai-msg-bg);
+  border: 1px solid var(--ai-msg-border);
+  border-radius: 4px 18px 18px 18px;
+  padding: 14px 18px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  font-family: var(--font-serif);
+  color: var(--text-primary);
+  position: relative;
+}
+.msg.ai::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  border-radius: inherit;
+  background: radial-gradient(ellipse at top left, rgba(201,169,110,0.06), transparent 70%);
+  pointer-events: none;
+}
+.msg.user {
+  align-self: flex-end;
+  background: var(--user-msg-bg);
+  border: 1px solid var(--user-msg-border);
+  border-radius: 18px 4px 18px 18px;
+  padding: 12px 16px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: var(--text-primary);
+}
+
+/* Typing cursor */
+.typing-cursor {
+  display: inline-block;
+  width: 2px; height: 1em;
+  background: var(--accent-gold);
+  margin-left: 2px;
+  animation: blink 0.8s step-end infinite;
+  vertical-align: text-bottom;
+}
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+/* Thinking dots */
+.thinking {
+  align-self: flex-start;
+  display: flex; gap: 6px; align-items: center;
+  padding: 14px 22px;
+  background: var(--ai-msg-bg);
+  border: 1px solid var(--ai-msg-border);
+  border-radius: 4px 18px 18px 18px;
+  backdrop-filter: blur(12px);
+  animation: msgIn 0.3s ease both;
+}
+.thinking .dot {
+  width: 6px; height: 6px;
+  background: var(--accent-gold);
+  border-radius: 50%;
+  animation: thinkDot 1.4s ease-in-out infinite;
+}
+.thinking .dot:nth-child(2) { animation-delay: 0.2s; }
+.thinking .dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes thinkDot {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.3; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
+/* ===== Quick Options ===== */
+.quick-options {
+  align-self: center;
+  max-width: 92%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: msgIn 0.5s ease both;
+}
+.quick-option-btn {
+  width: 100%;
+  padding: 14px 20px;
+  border-radius: 14px;
+  border: 1px solid rgba(201,169,110,0.2);
+  background: linear-gradient(135deg, rgba(201,169,110,0.08), rgba(139,92,246,0.06));
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.6;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: left;
+}
+.quick-option-btn:active {
+  background: linear-gradient(135deg, rgba(201,169,110,0.2), rgba(139,92,246,0.12));
+  transform: scale(0.98);
+}
+.quick-option-btn .opt-title {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  color: var(--accent-gold);
+  margin-bottom: 4px;
+}
+.quick-option-btn .opt-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* ===== Report ===== */
+.report-container {
+  align-self: center;
+  max-width: 95%;
+  width: 100%;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 16px;
+  padding: 24px 20px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  animation: reportIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+  margin: 8px 0;
+}
+@keyframes reportIn {
+  from { opacity: 0; transform: scale(0.95) translateY(20px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.report-container h1 {
+  font-family: var(--font-serif);
+  font-size: 20px;
+  color: var(--accent-gold);
+  text-align: center;
+  letter-spacing: 4px;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+.report-container .report-sub {
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 2px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.report-container h2 {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  color: var(--accent-warm);
+  margin: 20px 0 10px;
+  padding-left: 12px;
+  border-left: 2px solid var(--accent-gold);
+  letter-spacing: 2px;
+  font-weight: 500;
+}
+.report-container p {
+  font-size: 14px;
+  line-height: 2;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+  text-align: justify;
+}
+.report-container blockquote {
+  border-left: 2px solid rgba(201,169,110,0.3);
+  padding: 8px 14px;
+  margin: 10px 0;
+  background: rgba(201,169,110,0.05);
+  border-radius: 0 8px 8px 0;
+  font-style: italic;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.9;
+}
+.report-container .report-divider {
+  text-align: center;
+  color: var(--accent-gold);
+  font-size: 12px;
+  letter-spacing: 8px;
+  margin: 16px 0;
+  opacity: 0.5;
+}
+
+/* Talent Tag */
+.talent-tag-card {
+  align-self: center;
+  max-width: 92%;
+  width: 100%;
+  background: linear-gradient(135deg, rgba(201,169,110,0.12), rgba(139,92,246,0.08));
+  border: 1px solid rgba(201,169,110,0.25);
+  border-radius: 16px;
+  padding: 28px 20px;
+  text-align: center;
+  animation: reportIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+  position: relative;
+  overflow: hidden;
+}
+.talent-tag-card::before {
+  content: '';
+  position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: 50px; height: 2px;
+  background: var(--accent-gold);
+  border-radius: 1px;
+}
+.talent-tag-card .tag-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 3px;
+  margin-bottom: 12px;
+}
+.talent-tag-card .tag-name {
+  font-family: var(--font-serif);
+  font-size: 28px;
+  color: var(--accent-gold);
+  letter-spacing: 4px;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+.talent-tag-card .tag-quote {
+  font-family: var(--font-serif);
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.8;
+  margin-bottom: 16px;
+}
+.talent-tag-card .tag-keywords {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.talent-tag-card .keyword {
+  font-size: 12px;
+  color: var(--accent-gold);
+  border: 1px solid rgba(201,169,110,0.3);
+  border-radius: 12px;
+  padding: 4px 12px;
+  letter-spacing: 1px;
+}
+
+/* Radar Chart */
+.radar-container {
+  align-self: center;
+  max-width: 280px;
+  width: 100%;
+  margin: 8px auto;
+  animation: msgIn 0.6s ease both;
+}
+.radar-container canvas {
+  width: 100%;
+  height: auto;
+}
+
+/* Share Card */
+.share-card-wrapper {
+  align-self: center;
+  max-width: 92%;
+  width: 100%;
+  text-align: center;
+  animation: msgIn 0.5s ease both;
+}
+.share-card-wrapper canvas {
+  width: 100%;
+  max-width: 360px;
+  height: auto;
+  border-radius: 12px;
+  margin: 0 auto;
+}
+
+/* Action Buttons */
+.action-btns {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 12px 0;
+  animation: msgIn 0.5s ease both;
+  align-self: center;
+}
+.action-btn {
+  padding: 10px 22px;
+  border-radius: 22px;
+  font-size: 13px;
+  font-family: var(--font-serif);
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+}
+.action-btn.primary {
+  background: linear-gradient(135deg, rgba(201,169,110,0.3), rgba(201,169,110,0.15));
+  border: 1px solid rgba(201,169,110,0.35);
+  color: var(--accent-gold);
+}
+.action-btn.secondary {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: var(--text-secondary);
+}
+.action-btn:active {
+  transform: scale(0.96);
+}
+
+/* Upgrade CTA */
+.upgrade-cta {
+  align-self: center;
+  max-width: 90%;
+  width: 100%;
+  text-align: center;
+  padding: 20px 16px;
+  background: linear-gradient(135deg, rgba(201,169,110,0.06), rgba(139,92,246,0.04));
+  border: 1px solid rgba(201,169,110,0.15);
+  border-radius: 14px;
+  margin: 8px 0 16px;
+  animation: msgIn 0.5s ease both;
+}
+.upgrade-cta .cta-title {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  color: var(--accent-gold);
+  margin-bottom: 8px;
+  letter-spacing: 2px;
+}
+.upgrade-cta .cta-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.8;
+  margin-bottom: 14px;
+}
+.upgrade-cta .cta-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 28px;
+  background: linear-gradient(135deg, rgba(201,169,110,0.3), rgba(201,169,110,0.12));
+  border: 1px solid rgba(201,169,110,0.35);
+  border-radius: 24px;
+  color: var(--accent-gold);
+  font-family: var(--font-serif);
+  font-size: 14px;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+/* ===== Input Area ===== */
+.input-area {
+  flex-shrink: 0;
+  padding: 10px 14px;
+  padding-bottom: calc(10px + var(--safe-bottom));
+  background: linear-gradient(0deg, rgba(10,14,39,0.95) 0%, rgba(10,14,39,0.8) 70%, transparent 100%);
+  position: relative;
+  z-index: 10;
+}
+.input-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  max-width: 680px;
+  margin: 0 auto;
+}
+.input-wrapper { flex: 1; position: relative; }
+.input-wrapper textarea {
+  width: 100%;
+  min-height: 42px;
+  max-height: 100px;
+  padding: 10px 14px;
+  background: var(--input-bg);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 21px;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.5;
+  resize: none;
+  outline: none;
+  transition: border-color 0.3s;
+  overflow-y: auto;
+}
+.input-wrapper textarea::placeholder { color: var(--text-muted); }
+.input-wrapper textarea:focus { border-color: rgba(201,169,110,0.3); }
+
+.send-btn {
+  width: 42px; height: 42px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, rgba(201,169,110,0.3), rgba(139,92,246,0.2));
+  color: var(--accent-gold);
+  font-size: 17px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+}
+.send-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.send-btn:not(:disabled):hover {
+  transform: scale(1.05);
+  background: linear-gradient(135deg, rgba(201,169,110,0.45), rgba(139,92,246,0.3));
+}
+
+.mic-btn {
+  width: 42px; height: 42px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: var(--input-bg);
+  color: var(--text-secondary);
+  font-size: 17px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.mic-btn.recording {
+  background: rgba(239,68,68,0.2);
+  border-color: rgba(239,68,68,0.4);
+  color: #ef4444;
+  animation: micPulse 1.5s ease infinite;
+}
+@keyframes micPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.3); }
+  50% { box-shadow: 0 0 0 8px rgba(239,68,68,0); }
+}
+.mic-btn.unsupported { opacity: 0.3; cursor: not-allowed; }
+
+.interim-text {
+  position: absolute;
+  bottom: 100%;
+  left: 0; right: 0;
+  padding: 4px 14px;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* ===== Loading Overlay ===== */
+.loading-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(10,14,39,0.85);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  animation: fadeIn 0.5s ease;
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.loading-overlay .lotus {
+  width: 56px; height: 56px;
+  animation: lotusSpin 3s linear infinite;
+}
+@keyframes lotusSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.loading-overlay .loading-text {
+  margin-top: 20px;
+  font-family: var(--font-serif);
+  font-size: 14px;
+  color: var(--text-secondary);
+  letter-spacing: 3px;
+  animation: loadingPulse 2s ease-in-out infinite;
+}
+@keyframes loadingPulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+
+/* ===== Particles ===== */
+.bg-particles {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+}
+.particle {
+  position: absolute;
+  width: 2px; height: 2px;
+  background: rgba(201,169,110,0.15);
+  border-radius: 50%;
+  animation: particleFloat linear infinite;
+}
+@keyframes particleFloat {
+  0% { transform: translateY(100vh) scale(0); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(-10vh) scale(1); opacity: 0; }
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 480px) {
+  .header { padding: 10px 12px 6px; }
+  .header-title { font-size: 15px; letter-spacing: 3px; }
+  .chat-area { padding: 12px 10px; }
+  .msg { max-width: 92%; font-size: 14px; }
+  .msg.ai { padding: 12px 14px; }
+  .msg.user { padding: 10px 14px; }
+  .report-container { padding: 18px 14px; }
+  .report-container h1 { font-size: 18px; }
+  .stage-label { font-size: 8px; }
+  .input-area { padding: 8px 10px; padding-bottom: calc(8px + var(--safe-bottom)); }
+  .talent-tag-card .tag-name { font-size: 24px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Background Particles -->
+<div class="bg-particles" id="bgParticles"></div>
+
+<!-- Main App -->
+<div id="app">
+  <div class="header">
+    <div class="header-title">观 澜</div>
+    <div class="header-subtitle">东方天赋定位 · 快速版</div>
+    <div class="header-badge">5分钟 · 5道题</div>
+    <div class="progress-container" id="progressBar">
+      <div class="progress-step" data-stage="0"><div class="fill"></div></div>
+      <div class="progress-step" data-stage="1"><div class="fill"></div></div>
+      <div class="progress-step" data-stage="2"><div class="fill"></div></div>
+      <div class="progress-step" data-stage="3"><div class="fill"></div></div>
+      <div class="progress-step" data-stage="4"><div class="fill"></div></div>
+    </div>
+    <div class="stage-labels">
+      <div class="stage-label" data-stage="0">入水</div>
+      <div class="stage-label" data-stage="1">观流</div>
+      <div class="stage-label" data-stage="2">溯源</div>
+      <div class="stage-label" data-stage="3">观照</div>
+      <div class="stage-label" data-stage="4">定位</div>
+    </div>
+  </div>
+
+  <div class="chat-area" id="chatArea">
+    <div class="chat-area-inner" id="chatInner"></div>
+  </div>
+
+  <div class="input-area" id="inputArea">
+    <div class="input-row">
+      <button class="mic-btn" id="micBtn" aria-label="语音输入">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+          <line x1="12" y1="19" x2="12" y2="23"/>
+          <line x1="8" y1="23" x2="16" y2="23"/>
+        </svg>
+      </button>
+      <div class="input-wrapper">
+        <div class="interim-text" id="interimText" style="display:none;"></div>
+        <textarea id="userInput" placeholder="说说你的想法……" rows="1"></textarea>
+      </div>
+      <button class="send-btn" id="sendBtn" disabled aria-label="发送">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"/>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===== 全局状态 ===== */
+var STATE = {
+  phase: 'init',
+  currentQ: -1,
+  answers: {},
+  isTyping: false,
+  isProcessing: false,
+  reportGenerated: false
+};
+
+/* ===== 5道精选题 ===== */
+var QUESTIONS = [
+  { key: 'q1', stage: 0, stageName: '入水', text: '最近一次你做事做到忘了时间——连手机都忘了看——是什么时候？在做什么？' },
+  { key: 'q5', stage: 1, stageName: '观流', text: '身边的人——不是工作上，是生活里——会反复找你帮什么忙、问你什么意见？' },
+  { key: 'q17', stage: 1, stageName: '观流', text: '有没有什么事，别人觉得很难，但你觉得像呼吸一样自然？' },
+  { key: 'q9', stage: 2, stageName: '溯源', text: '你自己经历过的——不是听别人说的，是你自己熬过来的——最长的一段痛苦或迷茫是什么？' },
+  { key: 'q13', stage: 3, stageName: '观照', text: '如果把现在的所有身份都拿走——公司、收入、头衔、人脉、经验——你觉得你还剩下什么？' }
+];
+
+/* ===== 天赋原型 ===== */
+var ARCHETYPES = [
+  { name: '涌泉', power: '洞察力', quote: '别人看到问题，你看到答案', keywords: ['洞察', '解题', '穿透'] },
+  { name: '听潮', power: '感知力', quote: '别人还在观望，你已经听见未来', keywords: ['感知', '直觉', '预见'] },
+  { name: '深潭', power: '承载力', quote: '别人追求被看见，你选择被需要', keywords: ['承载', '倾听', '陪伴'] },
+  { name: '破冰', power: '破局力', quote: '别人维护秩序，你创造新规则', keywords: ['突破', '创新', '颠覆'] },
+  { name: '长风', power: '影响力', quote: '别人说服人，你打动人', keywords: ['感染', '共振', '引领'] },
+  { name: '明镜', power: '洞见力', quote: '别人看表面，你看见本质', keywords: ['本质', '清晰', '照见'] },
+  { name: '潜流', power: '整合力', quote: '别人做加法，你做乘法', keywords: ['连接', '整合', '系统'] },
+  { name: '潮汐', power: '节奏力', quote: '别人追赶时间，你掌握节奏', keywords: ['节奏', '时机', '韵律'] }
+];
+
+/* ===== 过渡语 ===== */
+var TRANSITIONS = [
+  '嗯，我记住了。让我们继续——',
+  '有意思。再问你一个——',
+  '好的。接下来这个问题可能不太好回答——',
+  '谢谢你的坦诚。最后一个问题——'
+];
+
+/* ===== DOM ===== */
+var app = document.getElementById('app');
+var chatArea = document.getElementById('chatArea');
+var chatInner = document.getElementById('chatInner');
+var userInput = document.getElementById('userInput');
+var sendBtn = document.getElementById('sendBtn');
+var micBtn = document.getElementById('micBtn');
+var interimText = document.getElementById('interimText');
+var progressBar = document.getElementById('progressBar');
+
+/* ===== 初始化 ===== */
+function init() {
+  createParticles();
+  setupInputHandlers();
+  setupVoiceInput();
+  setTimeout(function() {
+    app.classList.add('visible');
+    showWelcome();
+  }, 300);
+}
+
+/* ===== 背景粒子 ===== */
+function createParticles() {
+  var container = document.getElementById('bgParticles');
+  for (var i = 0; i < 18; i++) {
+    var p = document.createElement('div');
+    p.className = 'particle';
+    p.style.left = Math.random() * 100 + '%';
+    p.style.animationDuration = (8 + Math.random() * 12) + 's';
+    p.style.animationDelay = Math.random() * 10 + 's';
+    p.style.width = p.style.height = (1 + Math.random() * 2) + 'px';
+    container.appendChild(p);
+  }
+}
+
+/* ===== 输入框 ===== */
+function setupInputHandlers() {
+  userInput.addEventListener('input', function() {
+    sendBtn.disabled = userInput.value.trim() === '';
+    userInput.style.height = 'auto';
+    userInput.style.height = Math.min(userInput.scrollHeight, 100) + 'px';
+  });
+  userInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (!sendBtn.disabled) handleSend();
+    }
+  });
+  sendBtn.addEventListener('click', handleSend);
+}
+
+function handleSend() {
+  var text = userInput.value.trim();
+  if (!text || STATE.isTyping || STATE.isProcessing) return;
+  addUserMessage(text);
+  userInput.value = '';
+  userInput.style.height = 'auto';
+  sendBtn.disabled = true;
+  processAnswer(text);
+}
+
+/* ===== 消息渲染 ===== */
+function addUserMessage(text) {
+  var el = document.createElement('div');
+  el.className = 'msg user';
+  el.textContent = text;
+  chatInner.appendChild(el);
+  scrollToBottom();
+}
+
+function addAIMessage(text, callback) {
+  var el = document.createElement('div');
+  el.className = 'msg ai';
+  chatInner.appendChild(el);
+  STATE.isTyping = true;
+  typewriterEffect(el, text, function() {
+    STATE.isTyping = false;
+    scrollToBottom();
+    if (callback) callback();
+  });
+  scrollToBottom();
+}
+
+function addAINoAnim(text) {
+  var el = document.createElement('div');
+  el.className = 'msg ai';
+  el.textContent = text;
+  chatInner.appendChild(el);
+  scrollToBottom();
+}
+
+function showThinking(callback) {
+  var el = document.createElement('div');
+  el.className = 'thinking';
+  el.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+  chatInner.appendChild(el);
+  scrollToBottom();
+  setTimeout(function() {
+    el.remove();
+    if (callback) callback();
+  }, 1000 + Math.random() * 600);
+}
+
+function typewriterEffect(element, text, onComplete) {
+  var i = 0;
+  var cursor = document.createElement('span');
+  cursor.className = 'typing-cursor';
+  element.appendChild(cursor);
+  var speed = Math.max(20, Math.min(45, 2500 / text.length));
+  function type() {
+    if (i < text.length) {
+      var ch = text.charAt(i);
+      if (ch === '\n') {
+        element.insertBefore(document.createElement('br'), cursor);
+      } else {
+        element.insertBefore(document.createTextNode(ch), cursor);
+      }
+      i++;
+      scrollToBottom();
+      setTimeout(type, speed);
+    } else {
+      cursor.remove();
+      if (onComplete) onComplete();
+    }
+  }
+  type();
+}
+
+function scrollToBottom() {
+  requestAnimationFrame(function() {
+    chatArea.scrollTop = chatArea.scrollHeight;
+  });
+}
+
+/* ===== 进度条 ===== */
+function updateProgress(stageIdx) {
+  var steps = progressBar.querySelectorAll('.progress-step');
+  var labels = document.querySelectorAll('.stage-label');
+  steps.forEach(function(step, idx) {
+    step.classList.remove('active', 'current');
+    if (idx < stageIdx) step.classList.add('active');
+    else if (idx === stageIdx) step.classList.add('current');
+  });
+  labels.forEach(function(label, idx) {
+    label.classList.toggle('active', idx <= stageIdx);
+  });
+}
+
+/* ===== 欢迎 & 开场 ===== */
+function showWelcome() {
+  addAIMessage('你好，欢迎来到「观澜」。\n\n这里有一个5分钟的快速测评——5道题，帮你看见自己的天赋轮廓。\n\n不是测试，没有标准答案，就像聊天一样。第一反应往往最准。', function() {
+    setTimeout(function() {
+      addAIMessage('准备好了吗？', function() {
+        STATE.phase = 'waiting_start';
+      });
+    }, 400);
+  });
+}
+
+/* ===== 处理回答 ===== */
+function processAnswer(text) {
+  if (STATE.phase === 'waiting_start') {
+    STATE.phase = 'questions';
+    STATE.currentQ = 0;
+    STATE.isProcessing = true;
+    updateProgress(0);
+    showThinking(function() {
+      STATE.isProcessing = false;
+      addAIMessage('好，我们开始。', function() {
+        setTimeout(function() {
+          askCurrentQuestion();
+        }, 500);
+      });
+    });
+    return;
+  }
+
+  if (STATE.phase === 'questions') {
+    var q = QUESTIONS[STATE.currentQ];
+    STATE.answers[q.key] = text;
+
+    if (STATE.currentQ >= QUESTIONS.length - 1) {
+      // 全部完成
+      STATE.isProcessing = true;
+      showThinking(function() {
+        STATE.isProcessing = false;
+        updateProgress(4);
+        generateResult();
+      });
+    } else {
+      STATE.isProcessing = true;
+      showThinking(function() {
+        STATE.isProcessing = false;
+        STATE.currentQ++;
+        var prevStage = QUESTIONS[STATE.currentQ - 1].stage;
+        var curStage = QUESTIONS[STATE.currentQ].stage;
+        updateProgress(curStage);
+        if (curStage !== prevStage) {
+          var transitionText = TRANSITIONS[STATE.currentQ - 1] || '好的，继续。';
+          addAIMessage(transitionText, function() {
+            setTimeout(function() { askCurrentQuestion(); }, 500);
+          });
+        } else {
+          var tText = TRANSITIONS[STATE.currentQ - 1] || '嗯，再问你一个——';
+          addAIMessage(tText, function() {
+            setTimeout(function() { askCurrentQuestion(); }, 500);
+          });
+        }
+      });
+    }
+  }
+}
+
+function askCurrentQuestion() {
+  var q = QUESTIONS[STATE.currentQ];
+  addAIMessage(q.text);
+}
+
+/* ===== 天赋分析引擎 ===== */
+function analyzeTalent() {
+  var a = STATE.answers;
+  // 四维度评分 (1-5)
+  var scores = {
+    motivation: scoreDimension(a.q1 || '', '源动力'),
+    reflex: Math.round((scoreDimension(a.q5 || '', '天赋反射') + scoreDimension(a.q17 || '', '天赋反射')) / 2),
+    transform: scoreDimension(a.q9 || '', '痛苦转化'),
+    core: scoreDimension(a.q13 || '', '身份内核')
+  };
+  return scores;
+}
+
+function scoreDimension(text, dimName) {
+  if (!text || text.length < 5) return 2;
+  var score = 3;
+  var len = text.length;
+  if (len > 20) score++;
+  if (len > 50) score++;
+  if (len > 100) score = Math.min(score + 1, 5);
+  // 关键词加分
+  var positiveWords = {
+    '源动力': ['热爱', '喜欢', '着迷', '忘我', '兴奋', '开心', '热爱', '沉浸', '心流', '投入', '创造', '表达', '帮助', '分享', '设计', '写作', '画', '编程', '思考', '探索'],
+    '天赋反射': ['自然', '轻松', '习惯', '总是', '经常', '帮', '问', '听', '看', '分析', '整理', '建议', '安慰', '规划', '解决', '沟通', '连接', '组织', '感受'],
+    '痛苦转化': ['经历', '走过', '熬过', '坚持', '理解', '同理', '成长', '学会', '明白', '放下', '接纳', '痛苦', '迷茫', '焦虑', '失败', '挫折', '低谷', '黑暗', '孤独', '重建'],
+    '身份内核': ['善良', '真诚', '好奇', '探索', '创造', '爱', '光', '温暖', '自由', '独立', '坚韧', '勇气', '平静', '觉察', '觉知', '真实', '本真', '初心', '热爱', '信念']
+  };
+  var words = positiveWords[dimName] || [];
+  for (var i = 0; i < words.length; i++) {
+    if (text.indexOf(words[i]) !== -1) {
+      score++;
+      break;
+    }
+  }
+  return Math.min(score, 5);
+}
+
+function determineArchetype(scores) {
+  var total = scores.motivation + scores.reflex + scores.transform + scores.core;
+  var dims = [
+    { name: '源动力', score: scores.motivation },
+    { name: '天赋反射', score: scores.reflex },
+    { name: '痛苦转化', score: scores.transform },
+    { name: '身份内核', score: scores.core }
+  ];
+  dims.sort(function(a, b) { return b.score - a.score; });
+  var topDim = dims[0].name;
+
+  // 映射规则
+  var mapping = {
+    '源动力': { high: [0, 1], low: [4, 5] },
+    '天赋反射': { high: [2, 3], low: [6, 7] },
+    '痛苦转化': { high: [3, 5], low: [2, 7] },
+    '身份内核': { high: [5, 6], low: [0, 4] }
+  };
+
+  var idx;
+  if (total >= 17) {
+    // 高分选最强维度
+    idx = mapping[topDim].high[0];
+  } else if (total <= 10) {
+    // 低分选最强维度
+    idx = mapping[topDim].low[1] || mapping[topDim].low[0];
+  } else {
+    // 中等：综合最高维度
+    idx = mapping[topDim].high[0];
+  }
+  idx = idx % ARCHETYPES.length;
+  return { archetype: ARCHETYPES[idx], scores: scores, total: total, dims: dims };
+}
+
+/* ===== 生成结果 ===== */
+function generateResult() {
+  // Loading
+  var overlay = document.createElement('div');
+  overlay.className = 'loading-overlay';
+  overlay.id = 'loadingOverlay';
+  overlay.innerHTML = '<svg class="lotus" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="none" stroke="rgba(201,169,110,0.3)" stroke-width="1"/><circle cx="50" cy="50" r="30" fill="none" stroke="rgba(201,169,110,0.2)" stroke-width="1"/><circle cx="50" cy="50" r="20" fill="none" stroke="rgba(201,169,110,0.15)" stroke-width="1"/><path d="M50 10 Q65 35 50 50 Q35 35 50 10" fill="rgba(201,169,110,0.15)" stroke="rgba(201,169,110,0.3)" stroke-width="0.5"/><path d="M90 50 Q65 65 50 50 Q65 35 90 50" fill="rgba(201,169,110,0.15)" stroke="rgba(201,169,110,0.3)" stroke-width="0.5"/><path d="M50 90 Q35 65 50 50 Q65 65 50 90" fill="rgba(201,169,110,0.15)" stroke="rgba(201,169,110,0.3)" stroke-width="0.5"/><path d="M10 50 Q35 35 50 50 Q35 65 10 50" fill="rgba(201,169,110,0.15)" stroke="rgba(201,169,110,0.3)" stroke-width="0.5"/></svg><div class="loading-text">正在解读你的天赋脉络……</div>';
+  document.body.appendChild(overlay);
+
+  setTimeout(function() {
+    overlay.remove();
+    var result = determineArchetype(analyzeTalent());
+    displayTalentTag(result);
+  }, 2500);
+}
+
+/* ===== 天赋标签展示 ===== */
+function displayTalentTag(result) {
+  var arch = result.archetype;
+  var a = STATE.answers;
+
+  addAIMessage('我听见你了。让我整理一下你天赋的脉络……');
+
+  setTimeout(function() {
+    // 天赋标签卡
+    var tagCard = document.createElement('div');
+    tagCard.className = 'talent-tag-card';
+    tagCard.innerHTML = '<div class="tag-label">你的天赋类型</div>' +
+      '<div class="tag-name">' + arch.name + '型</div>' +
+      '<div class="tag-quote">' + arch.quote + '</div>' +
+      '<div class="tag-keywords">' +
+      arch.keywords.map(function(k) { return '<span class="keyword">' + k + '</span>'; }).join('') +
+      '</div>';
+    chatInner.appendChild(tagCard);
+    scrollToBottom();
+
+    // 雷达图
+    setTimeout(function() {
+      var radarWrap = document.createElement('div');
+      radarWrap.className = 'radar-container';
+      var radarCanvas = document.createElement('canvas');
+      radarCanvas.width = 560;
+      radarCanvas.height = 560;
+      radarCanvas.id = 'radarCanvas';
+      radarWrap.appendChild(radarCanvas);
+      chatInner.appendChild(radarWrap);
+      scrollToBottom();
+      drawRadarChart(result.scores);
+
+      // 解读文本
+      setTimeout(function() {
+        var report = buildQuickReport(result);
+        var reportEl = document.createElement('div');
+        reportEl.className = 'report-container';
+        reportEl.innerHTML = report;
+        chatInner.appendChild(reportEl);
+        scrollToBottom();
+
+        // 分享卡片
+        setTimeout(function() {
+          addAIMessage('我帮你生成了一张分享卡片——', function() {
+            setTimeout(function() {
+              generateShareCard(result);
+            }, 400);
+          });
+        }, 800);
+      }, 600);
+    }, 600);
+  }, 800);
+}
+
+/* ===== 雷达图绘制 ===== */
+function drawRadarChart(scores) {
+  var canvas = document.getElementById('radarCanvas');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  var w = canvas.width, h = canvas.height;
+  var cx = w / 2, cy = h / 2;
+  var r = Math.min(w, h) * 0.35;
+
+  var labels = ['源动力', '天赋反射', '痛苦转化', '身份内核'];
+  var values = [scores.motivation, scores.reflex, scores.transform, scores.core];
+  var n = labels.length;
+
+  // 背景网格
+  ctx.strokeStyle = 'rgba(201,169,110,0.1)';
+  ctx.lineWidth = 1;
+  for (var level = 1; level <= 5; level++) {
+    ctx.beginPath();
+    for (var i = 0; i <= n; i++) {
+      var angle = (Math.PI * 2 * i / n) - Math.PI / 2;
+      var px = cx + r * (level / 5) * Math.cos(angle);
+      var py = cy + r * (level / 5) * Math.sin(angle);
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.stroke();
+  }
+
+  // 轴线
+  ctx.strokeStyle = 'rgba(201,169,110,0.15)';
+  for (var i = 0; i < n; i++) {
+    var angle = (Math.PI * 2 * i / n) - Math.PI / 2;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + r * Math.cos(angle), cy + r * Math.sin(angle));
+    ctx.stroke();
+  }
+
+  // 数据区域
+  ctx.beginPath();
+  for (var i = 0; i < n; i++) {
+    var angle = (Math.PI * 2 * i / n) - Math.PI / 2;
+    var val = values[i] / 5;
+    var px = cx + r * val * Math.cos(angle);
+    var py = cy + r * val * Math.sin(angle);
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(201,169,110,0.15)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(201,169,110,0.6)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // 数据点
+  for (var i = 0; i < n; i++) {
+    var angle = (Math.PI * 2 * i / n) - Math.PI / 2;
+    var val = values[i] / 5;
+    var px = cx + r * val * Math.cos(angle);
+    var py = cy + r * val * Math.sin(angle);
+    ctx.beginPath();
+    ctx.arc(px, py, 4, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(201,169,110,0.9)';
+    ctx.fill();
+  }
+
+  // 标签
+  ctx.fillStyle = 'rgba(232,230,240,0.7)';
+  ctx.font = '24px "Songti SC", "SimSun", serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  for (var i = 0; i < n; i++) {
+    var angle = (Math.PI * 2 * i / n) - Math.PI / 2;
+    var lx = cx + (r + 40) * Math.cos(angle);
+    var ly = cy + (r + 40) * Math.sin(angle);
+    ctx.fillText(labels[i], lx, ly);
+    // 分数
+    ctx.font = '18px sans-serif';
+    ctx.fillStyle = 'rgba(201,169,110,0.8)';
+    ctx.fillText(values[i] + '/5', lx, ly + 26);
+    ctx.font = '24px "Songti SC", "SimSun", serif';
+    ctx.fillStyle = 'rgba(232,230,240,0.7)';
+  }
+}
+
+/* ===== 构建快速报告 ===== */
+function buildQuickReport(result) {
+  var arch = result.archetype;
+  var a = STATE.answers;
+  var scores = result.scores;
+  var dims = result.dims;
+  var now = new Date();
+  var dateStr = now.getFullYear() + '年' + (now.getMonth() + 1) + '月' + now.getDate() + '日';
+
+  var html = '<h1>天赋定位报告</h1>';
+  html += '<div class="report-sub">观澜 · 快速版 | ' + dateStr + '</div>';
+
+  html += '<h2>天赋原型：' + arch.name + '</h2>';
+  html += '<blockquote>' + arch.quote + '</blockquote>';
+  html += '<p>你的核心天赋类型是「<strong>' + arch.name + '</strong>」——拥有<strong>' + arch.power + '</strong>。';
+  html += '这是东方水象中一种独特的力量形态。</p>';
+
+  html += '<div class="report-divider">◆ ◆ ◆</div>';
+
+  html += '<h2>四维解读</h2>';
+
+  // 源动力
+  html += '<p><strong>源动力（' + scores.motivation + '/5）</strong>：';
+  var q1short = extractKw(a.q1 || '', 20);
+  html += '你在「' + q1short + '」中找到了忘我的心流。这种驱动力是你天赋的燃料——它告诉你，什么方向是真正属于你的。</p>';
+
+  // 天赋反射
+  html += '<p><strong>天赋反射（' + scores.reflex + '/5）</strong>：';
+  var q5short = extractKw(a.q5 || '', 15);
+  var q17short = extractKw(a.q17 || '', 15);
+  html += '别人反复因为「' + q5short + '」找到你，而「' + q17short + '」对你来说像呼吸一样自然。这就是你的天赋反射——不用刻意练习，它已经在你身上。</p>';
+
+  // 痛苦转化
+  html += '<p><strong>痛苦转化（' + scores.transform + '/5）</strong>：';
+  var q9short = extractKw(a.q9 || '', 20);
+  html += '你经历过「' + q9short + '」。这段痛苦不是天赋的反面，而是天赋的另一种表达。你的伤口，就是你的地图。</p>';
+
+  // 身份内核
+  html += '<p><strong>身份内核（' + scores.core + '/5）</strong>：';
+  var q13short = extractKw(a.q13 || '', 20);
+  html += '剥掉所有标签后，你剩下的核心是「' + q13short + '」。这就是你天赋的底层编码——它不会因为外部环境变化而改变。</p>';
+
+  html += '<div class="report-divider">◆ ◆ ◆</div>';
+
+  html += '<h2>给你的话</h2>';
+  html += '<p>你不需要变成一个更厉害的人。你需要的是，看见自己本来的样子，然后不再躲。</p>';
+  html += '<p>「' + arch.name + '」型的人，最大的挑战不是能力不足，而是方向不清。你已经有了所有的素材——现在需要的，只是做一个选择，然后开始行动。</p>';
+
+  return html;
+}
+
+function extractKw(text, maxLen) {
+  if (!text) return '……';
+  var t = text.replace(/\s+/g, ' ').trim();
+  if (t.length <= maxLen) return t;
+  var m = t.match(/[「『""'](.*?)[」』""']/);
+  if (m) return m[1].slice(0, maxLen);
+  return t.slice(0, maxLen) + '……';
+}
+
+/* ===== 分享卡片生成 ===== */
+function generateShareCard(result) {
+  var arch = result.archetype;
+  var canvas = document.createElement('canvas');
+  canvas.width = 1080;
+  canvas.height = 1440;
+  canvas.id = 'shareCanvas';
+
+  var ctx = canvas.getContext('2d');
+
+  // 背景渐变
+  var grad = ctx.createLinearGradient(0, 0, 540, 1440);
+  grad.addColorStop(0, '#0a0e27');
+  grad.addColorStop(0.4, '#141852');
+  grad.addColorStop(1, '#1a0a3e');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 1080, 1440);
+
+  // 水墨质感：随机圆点
+  ctx.globalAlpha = 0.03;
+  for (var i = 0; i < 60; i++) {
+    ctx.beginPath();
+    ctx.arc(Math.random() * 1080, Math.random() * 1440, Math.random() * 120 + 20, 0, Math.PI * 2);
+    ctx.fillStyle = '#c9a96e';
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  // 金色顶部线条
+  ctx.fillStyle = 'rgba(201,169,110,0.6)';
+  ctx.fillRect(340, 120, 400, 2);
+
+  // 顶部标题
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(201,169,110,0.5)';
+  ctx.font = '28px "Songti SC", "SimSun", serif';
+  ctx.fillText('观澜 · 东方天赋定位', 540, 100);
+
+  // 天赋类型标签
+  ctx.fillStyle = 'rgba(232,230,240,0.4)';
+  ctx.font = '26px sans-serif';
+  ctx.fillText('— 你的天赋类型 —', 540, 240);
+
+  // 大字天赋名
+  ctx.fillStyle = '#c9a96e';
+  ctx.font = 'bold 100px "Songti SC", "SimSun", serif';
+  ctx.fillText(arch.name + '型', 540, 400);
+
+  // 一句话定义
+  ctx.fillStyle = 'rgba(232,230,240,0.7)';
+  ctx.font = '36px "Songti SC", "SimSun", serif';
+  ctx.fillText('「' + arch.quote + '」', 540, 500);
+
+  // 天赋核心力
+  ctx.fillStyle = 'rgba(201,169,110,0.6)';
+  ctx.font = '28px sans-serif';
+  ctx.fillText(arch.power, 540, 580);
+
+  // 分隔线
+  ctx.fillStyle = 'rgba(201,169,110,0.3)';
+  ctx.fillRect(240, 640, 600, 1);
+
+  // 核心天赋词
+  ctx.fillStyle = 'rgba(232,230,240,0.4)';
+  ctx.font = '24px sans-serif';
+  ctx.fillText('核心天赋词', 540, 700);
+
+  // 三个关键词
+  var kw = arch.keywords;
+  var kwY = 780;
+  for (var i = 0; i < kw.length; i++) {
+    var kwX = 300 + i * 200;
+    // 圆角矩形背景
+    ctx.strokeStyle = 'rgba(201,169,110,0.3)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    var kwW = 140, kwH = 50;
+    var kwR = 25;
+    ctx.moveTo(kwX - kwW / 2 + kwR, kwY - kwH / 2);
+    ctx.lineTo(kwX + kwW / 2 - kwR, kwY - kwH / 2);
+    ctx.arcTo(kwX + kwW / 2, kwY - kwH / 2, kwX + kwW / 2, kwY - kwH / 2 + kwR, kwR);
+    ctx.lineTo(kwX + kwW / 2, kwY + kwH / 2 - kwR);
+    ctx.arcTo(kwX + kwW / 2, kwY + kwH / 2, kwX + kwW / 2 - kwR, kwY + kwH / 2, kwR);
+    ctx.lineTo(kwX - kwW / 2 + kwR, kwY + kwH / 2);
+    ctx.arcTo(kwX - kwW / 2, kwY + kwH / 2, kwX - kwW / 2, kwY + kwH / 2 - kwR, kwR);
+    ctx.lineTo(kwX - kwW / 2, kwY - kwH / 2 + kwR);
+    ctx.arcTo(kwX - kwW / 2, kwY - kwH / 2, kwX - kwW / 2 + kwR, kwY - kwH / 2, kwR);
+    ctx.closePath();
+    ctx.stroke();
+
+    ctx.fillStyle = 'rgba(201,169,110,0.9)';
+    ctx.font = '30px "Songti SC", "SimSun", serif';
+    ctx.fillText(kw[i], kwX, kwY + 10);
+  }
+
+  // 四维分数展示
+  var dims = ['源动力', '天赋反射', '痛苦转化', '身份内核'];
+  var vals = [result.scores.motivation, result.scores.reflex, result.scores.transform, result.scores.core];
+  var barStartY = 920;
+  ctx.fillStyle = 'rgba(232,230,240,0.3)';
+  ctx.font = '22px sans-serif';
+  for (var i = 0; i < 4; i++) {
+    var by = barStartY + i * 70;
+    // 标签
+    ctx.textAlign = 'right';
+    ctx.fillStyle = 'rgba(232,230,240,0.5)';
+    ctx.fillText(dims[i], 380, by + 6);
+    // 背景条
+    ctx.fillStyle = 'rgba(255,255,255,0.06)';
+    ctx.fillRect(400, by - 10, 340, 24);
+    // 值条
+    var barW = (vals[i] / 5) * 340;
+    var barGrad = ctx.createLinearGradient(400, 0, 400 + barW, 0);
+    barGrad.addColorStop(0, 'rgba(201,169,110,0.6)');
+    barGrad.addColorStop(1, 'rgba(201,169,110,0.3)');
+    ctx.fillStyle = barGrad;
+    ctx.fillRect(400, by - 10, barW, 24);
+    // 分数
+    ctx.textAlign = 'left';
+    ctx.fillStyle = 'rgba(201,169,110,0.8)';
+    ctx.font = '22px sans-serif';
+    ctx.fillText(vals[i] + '/5', 760, by + 6);
+  }
+
+  // 底部品牌
+  ctx.fillStyle = 'rgba(201,169,110,0.3)';
+  ctx.fillRect(240, 1220, 600, 1);
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(201,169,110,0.6)';
+  ctx.font = '30px "Songti SC", "SimSun", serif';
+  ctx.fillText('观澜 · 东方天赋定位', 540, 1280);
+
+  ctx.fillStyle = 'rgba(232,230,240,0.4)';
+  ctx.font = '22px sans-serif';
+  ctx.fillText('扫码发现你的天赋', 540, 1320);
+
+  // 二维码占位
+  ctx.strokeStyle = 'rgba(201,169,110,0.3)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(480, 1340, 120, 80);
+  ctx.fillStyle = 'rgba(232,230,240,0.2)';
+  ctx.font = '16px sans-serif';
+  ctx.fillText('二维码', 540, 1388);
+
+  // 插入到聊天区域
+  var wrapper = document.createElement('div');
+  wrapper.className = 'share-card-wrapper';
+  wrapper.appendChild(canvas);
+  chatInner.appendChild(wrapper);
+  scrollToBottom();
+
+  // 操作按钮
+  var btns = document.createElement('div');
+  btns.className = 'action-btns';
+  btns.innerHTML = '<button class="action-btn primary" onclick="saveShareCard()">保存到相册</button>' +
+    '<button class="action-btn secondary" onclick="shareToFriend()">分享给朋友</button>';
+  chatInner.appendChild(btns);
+  scrollToBottom();
+
+  // 引导深度版
+  setTimeout(function() {
+    showUpgradeCTA();
+  }, 800);
+}
+
+function saveShareCard() {
+  var canvas = document.getElementById('shareCanvas');
+  if (!canvas) return;
+  try {
+    canvas.toBlob(function(blob) {
+      if (!blob) {
+        // fallback: 尝试 dataURL 方式
+        var url = canvas.toDataURL('image/png');
+        var link = document.createElement('a');
+        link.download = '观澜_天赋卡片_' + Date.now() + '.png';
+        link.href = url;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        return;
+      }
+      if (navigator.share && navigator.canShare) {
+        var file = new File([blob], 'guilan_card.png', { type: 'image/png' });
+        if (navigator.canShare({ files: [file] })) {
+          navigator.share({ files: [file], title: '我的天赋卡片' }).catch(function() {});
+          return;
+        }
+      }
+      // 普通下载
+      var url = URL.createObjectURL(blob);
+      var link = document.createElement('a');
+      link.download = '观澜_天赋卡片_' + Date.now() + '.png';
+      link.href = url;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }, 'image/png');
+  } catch (err) {
+    addAINoAnim('保存失败，请长按图片手动保存。');
+  }
+}
+
+function shareToFriend() {
+  var canvas = document.getElementById('shareCanvas');
+  if (!canvas) return;
+  try {
+    canvas.toBlob(function(blob) {
+      if (navigator.share && blob) {
+        var file = new File([blob], 'guilan_card.png', { type: 'image/png' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          navigator.share({ files: [file], title: '观澜·天赋测评' }).catch(function() {});
+          return;
+        }
+      }
+      // fallback
+      addAINoAnim('点击右上角 ··· 可以分享到微信好友或朋友圈～');
+    }, 'image/png');
+  } catch (err) {
+    addAINoAnim('点击右上角 ··· 可以分享到微信好友或朋友圈～');
+  }
+}
+
+function showUpgradeCTA() {
+  var cta = document.createElement('div');
+  cta.className = 'upgrade-cta';
+  cta.innerHTML = '<div class="cta-title">想更深入地了解自己？</div>' +
+    '<div class="cta-desc">快速版只是轮廓。完整版81分钟深度对话，<br>覆盖21道核心问题，生成完整天赋定位报告——<br>包含六层透视、痛苦地图、商业落地路径。</div>' +
+    '<button class="cta-btn" onclick="alert(\'请前往观澜官网体验完整版\')">体验完整版 →</button>';
+  chatInner.appendChild(cta);
+  scrollToBottom();
+  STATE.reportGenerated = true;
+}
+
+/* ===== 语音输入 ===== */
+function setupVoiceInput() {
+  var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  if (!SpeechRecognition) {
+    console.log('[语音] 浏览器不支持Web Speech API');
+    micBtn.classList.add('unsupported');
+    micBtn.title = '当前浏览器不支持语音输入';
+    // 友好提示
+    setTimeout(function() {
+      var tip = document.createElement('div');
+      tip.className = 'msg ai';
+      tip.style.fontSize = '13px';
+      tip.innerHTML = '💡 当前浏览器不支持语音输入。你可以直接打字，或用 Chrome 浏览器打开此链接获得语音体验～';
+      chatInner.appendChild(tip);
+      scrollToBottom();
+    }, 600);
+    return;
+  }
+
+  console.log('[语音] Web Speech API 可用 ✓');
+
+  var isRecording = false;
+  var recognition = null;
+  var autoSendTimer = null;
+
+  // ★ 只监听click，不监听touchstart
+  micBtn.addEventListener('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (STATE.isTyping || STATE.isProcessing) return;
+    if (autoSendTimer) { clearTimeout(autoSendTimer); autoSendTimer = null; }
+
+    if (isRecording) {
+      // 停止
+      isRecording = false;
+      micBtn.classList.remove('recording');
+      interimText.style.display = 'block';
+      interimText.textContent = '⏳ 识别中…';
+      interimText.style.color = 'rgba(232,230,240,0.5)';
+      try { recognition.stop(); } catch(err) {}
+    } else {
+      // 开始
+      isRecording = true;
+      micBtn.classList.add('recording');
+      interimText.style.display = 'block';
+      interimText.textContent = '🎤 正在聆听…再点一次结束';
+      interimText.style.color = 'var(--accent-gold)';
+
+      try {
+        if (recognition) { try { recognition.abort(); } catch(e) {} }
+        recognition = new SpeechRecognition();
+        recognition.lang = 'zh-CN';
+        recognition.continuous = true;
+        recognition.interimResults = true;
+
+        recognition.onresult = function(event) {
+          var interim = '';
+          var finalText = '';
+          for (var i = event.resultIndex; i < event.results.length; i++) {
+            var t = event.results[i][0].transcript;
+            if (event.results[i].isFinal) { finalText += t; }
+            else { interim += t; }
+          }
+          if (interim) {
+            interimText.style.display = 'block';
+            interimText.textContent = '🎤 ' + interim;
+            interimText.style.color = 'rgba(232,230,240,0.6)';
+          }
+          if (finalText) {
+            userInput.value = (userInput.value + finalText).trim();
+            userInput.style.height = 'auto';
+            userInput.style.height = Math.min(userInput.scrollHeight, 100) + 'px';
+            sendBtn.disabled = userInput.value.trim() === '';
+            interimText.textContent = '✅ ' + finalText;
+            interimText.style.color = 'var(--accent-gold)';
+            if (autoSendTimer) clearTimeout(autoSendTimer);
+            autoSendTimer = setTimeout(function() {
+              if (userInput.value.trim() && !STATE.isTyping && !STATE.isProcessing) {
+                sendBtn.click();
+              }
+            }, 2500);
+          }
+        };
+
+        recognition.onerror = function(event) {
+          console.warn('[语音] error:', event.error);
+          if (event.error === 'not-allowed') {
+            interimText.textContent = '❌ 请允许麦克风权限';
+            interimText.style.color = '#ff6b6b';
+          } else if (event.error === 'no-speech') {
+            interimText.textContent = '🔇 没听到声音，请说话';
+            interimText.style.color = 'rgba(232,230,240,0.5)';
+            if (isRecording) {
+              setTimeout(function() { try { recognition.stop(); recognition.start(); } catch(e) {} }, 1000);
+              return;
+            }
+          } else if (event.error === 'aborted') {
+            return;
+          } else {
+            interimText.textContent = '⚠️ 语音出错，请直接打字';
+            interimText.style.color = '#ff6b6b';
+          }
+          isRecording = false;
+          micBtn.classList.remove('recording');
+          setTimeout(function() { interimText.style.display = 'none'; }, 4000);
+        };
+
+        recognition.onend = function() {
+          isRecording = false;
+          micBtn.classList.remove('recording');
+          if (userInput.value.trim() && !autoSendTimer) {
+            autoSendTimer = setTimeout(function() {
+              if (userInput.value.trim() && !STATE.isTyping && !STATE.isProcessing) {
+                sendBtn.click();
+              }
+            }, 2000);
+          }
+          setTimeout(function() {
+            if (!interimText.textContent.includes('❌') && !interimText.textContent.includes('⚠️')) {
+              interimText.style.display = 'none';
+              interimText.textContent = '';
+            }
+          }, 3000);
+        };
+
+        recognition.start();
+      } catch (err) {
+        isRecording = false;
+        micBtn.classList.remove('recording');
+        interimText.textContent = '⚠️ 启动失败，请重试或打字';
+        interimText.style.color = '#ff6b6b';
+        setTimeout(function() { interimText.style.display = 'none'; }, 3000);
+      }
+    }
+  });
+}
+
+/* ===== 启动 ===== */
+init();
+</script>
+</body>
+</html>
