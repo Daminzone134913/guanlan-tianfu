@@ -1,0 +1,17 @@
+{
+  "name": "观澜·东方天赋定位",
+  "short_name": "观澜",
+  "description": "东方天赋定位测评系统——通过轻松对话，发现你的天赋",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0a0e27",
+  "theme_color": "#0a0e27",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%230a0e27' width='100' height='100' rx='20'/><text x='50' y='55' font-size='40' text-anchor='middle' dominant-baseline='middle' fill='%23c9a96e'>澜</text></svg>",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
