@@ -4,1800 +4,399 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>观澜 · 东方天赋定位</title>
-
+<meta name="description" content="通过轻松对话，发现你的天赋。5分钟快速版 / 21分钟专业版 / 81分钟深度版">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0a0e27">
 <style>
-/* ===== CSS Reset & Variables ===== */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
 :root {
   --bg-start: #0a0e27;
   --bg-mid: #141852;
   --bg-end: #1a0a3e;
-  --glass-bg: rgba(255,255,255,0.06);
-  --glass-border: rgba(255,255,255,0.12);
-  --glass-shadow: rgba(0,0,0,0.3);
   --text-primary: #e8e6f0;
   --text-secondary: rgba(232,230,240,0.65);
   --text-muted: rgba(232,230,240,0.4);
   --accent-gold: #c9a96e;
   --accent-warm: #d4a574;
-  --user-msg-bg: linear-gradient(135deg, rgba(139,92,246,0.35), rgba(59,130,246,0.25));
-  --user-msg-border: rgba(139,92,246,0.3);
-  --ai-msg-bg: rgba(255,255,255,0.05);
-  --ai-msg-border: rgba(255,255,255,0.08);
-  --progress-active: linear-gradient(90deg, #c9a96e, #d4a574);
-  --input-bg: rgba(255,255,255,0.08);
-  --font-serif: 'Songti SC', 'Songti SC', 'SimSun', serif;
-  --font-sans: 'PingFang SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --glass-bg: rgba(255,255,255,0.06);
+  --glass-border: rgba(255,255,255,0.12);
+  --font-serif: 'Songti SC', 'SimSun', serif;
+  --font-sans: 'PingFang SC', 'Microsoft YaHei', sans-serif;
 }
 
 html, body {
-  height: 100%; width: 100%;
-  overflow: hidden;
+  min-height: 100vh;
   font-family: var(--font-sans);
   color: var(--text-primary);
   background: linear-gradient(160deg, var(--bg-start) 0%, var(--bg-mid) 40%, var(--bg-end) 100%);
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 
-/* ===== Scrollbar ===== */
-::-webkit-scrollbar { width: 3px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
-
-/* ===== App Container ===== */
-#app {
-  display: flex; flex-direction: column;
-  height: 100vh; height: 100dvh;
-  max-width: 680px;
-  margin: 0 auto;
-  position: relative;
-  opacity: 0;
-  transition: opacity 1.5s ease;
-}
-#app.visible { opacity: 1; }
-
-/* ===== Header ===== */
-.header {
-  flex-shrink: 0;
-  padding: 16px 20px 12px;
-  text-align: center;
-  position: relative;
-  z-index: 10;
-  background: linear-gradient(180deg, rgba(10,14,39,0.9) 0%, transparent 100%);
-}
-.header-title {
-  font-family: var(--font-serif);
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--accent-gold);
-  letter-spacing: 4px;
-  margin-bottom: 12px;
-}
-.header-subtitle {
-  font-size: 11px;
-  color: var(--text-muted);
-  letter-spacing: 2px;
-  margin-bottom: 14px;
-}
-
-/* Progress Bar */
-.progress-container {
-  display: flex; align-items: center; gap: 4px;
-  padding: 0 8px;
-}
-.progress-step {
-  flex: 1; height: 3px;
-  background: rgba(255,255,255,0.08);
-  border-radius: 2px;
-  overflow: hidden;
-  transition: all 0.6s ease;
-  position: relative;
-}
-.progress-step .fill {
-  position: absolute; left: 0; top: 0; height: 100%;
-  width: 0%; border-radius: 2px;
-  background: var(--progress-active);
-  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.progress-step.active .fill { width: 100%; }
-.progress-step.current .fill {
-  width: 50%;
-  animation: progressPulse 2s ease-in-out infinite;
-}
-@keyframes progressPulse {
-  0%, 100% { width: 30%; opacity: 0.7; }
-  50% { width: 70%; opacity: 1; }
-}
-.stage-labels {
-  display: flex; justify-content: space-between;
-  padding: 6px 8px 0;
-}
-.stage-label {
-  font-size: 9px;
-  color: var(--text-muted);
-  letter-spacing: 1px;
-  transition: color 0.4s;
-  text-align: center;
-  flex: 1;
-}
-.stage-label.active { color: var(--accent-gold); }
-
-/* ===== Chat Area ===== */
-.chat-area {
-  flex: 1;
-  overflow-y: auto;
-  padding: 20px 16px;
-  scroll-behavior: smooth;
-  -webkit-overflow-scrolling: touch;
-}
-.chat-area-inner {
-  display: flex; flex-direction: column;
-  gap: 16px;
-  min-height: 100%;
-  justify-content: flex-end;
-}
-
-/* Messages */
-.msg {
-  max-width: 88%;
-  animation: msgIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
-  line-height: 1.85;
-  font-size: 15px;
-}
-@keyframes msgIn {
-  from { opacity: 0; transform: translateY(16px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.msg.ai {
-  align-self: flex-start;
-  background: var(--ai-msg-bg);
-  border: 1px solid var(--ai-msg-border);
-  border-radius: 4px 18px 18px 18px;
-  padding: 16px 20px;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  font-family: var(--font-serif);
-  color: var(--text-primary);
-  position: relative;
-}
-.msg.ai::before {
-  content: '';
-  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-  border-radius: inherit;
-  background: radial-gradient(ellipse at top left, rgba(201,169,110,0.06), transparent 70%);
-  pointer-events: none;
-}
-
-.msg.user {
-  align-self: flex-end;
-  background: var(--user-msg-bg);
-  border: 1px solid var(--user-msg-border);
-  border-radius: 18px 4px 18px 18px;
-  padding: 14px 18px;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  color: var(--text-primary);
-}
-
-.msg.summary-card {
-  align-self: center;
-  max-width: 92%;
-  width: 100%;
-  background: linear-gradient(135deg, rgba(201,169,110,0.1), rgba(139,92,246,0.08));
-  border: 1px solid rgba(201,169,110,0.2);
-  border-radius: 12px;
-  padding: 20px 24px;
-  text-align: center;
-  font-family: var(--font-serif);
-  position: relative;
-  overflow: hidden;
-}
-.msg.summary-card::before {
-  content: '';
-  position: absolute; top: 0; left: 50%; transform: translateX(-50%);
-  width: 40px; height: 2px;
-  background: var(--accent-gold);
-  border-radius: 1px;
-}
-.msg.summary-card .summary-title {
-  font-size: 13px;
-  color: var(--accent-gold);
-  letter-spacing: 3px;
-  margin-bottom: 12px;
-  font-weight: 500;
-}
-.msg.summary-card .summary-text {
-  font-size: 14px;
-  color: var(--text-secondary);
-  line-height: 2;
-}
-
-/* Typing cursor */
-.typing-cursor {
-  display: inline-block;
-  width: 2px; height: 1em;
-  background: var(--accent-gold);
-  margin-left: 2px;
-  animation: blink 0.8s step-end infinite;
-  vertical-align: text-bottom;
-}
-@keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
-}
-
-/* Thinking animation */
-.thinking {
-  align-self: flex-start;
-  display: flex; gap: 6px; align-items: center;
-  padding: 16px 24px;
-  background: var(--ai-msg-bg);
-  border: 1px solid var(--ai-msg-border);
-  border-radius: 4px 18px 18px 18px;
-  backdrop-filter: blur(12px);
-  animation: msgIn 0.3s ease both;
-}
-.thinking .dot {
-  width: 6px; height: 6px;
-  background: var(--accent-gold);
-  border-radius: 50%;
-  animation: thinkDot 1.4s ease-in-out infinite;
-}
-.thinking .dot:nth-child(2) { animation-delay: 0.2s; }
-.thinking .dot:nth-child(3) { animation-delay: 0.4s; }
-@keyframes thinkDot {
-  0%, 80%, 100% { transform: scale(0.6); opacity: 0.3; }
-  40% { transform: scale(1); opacity: 1; }
-}
-
-/* ===== Report Styles ===== */
-.report-container {
-  align-self: center;
-  max-width: 95%;
-  width: 100%;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 16px;
-  padding: 28px 24px;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  animation: reportIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
-  margin: 8px 0;
-}
-@keyframes reportIn {
-  from { opacity: 0; transform: scale(0.95) translateY(20px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
-}
-.report-container h1 {
-  font-family: var(--font-serif);
-  font-size: 22px;
-  color: var(--accent-gold);
-  text-align: center;
-  letter-spacing: 4px;
-  margin-bottom: 6px;
-  font-weight: 600;
-}
-.report-container .report-sub {
-  text-align: center;
-  font-size: 12px;
-  color: var(--text-muted);
-  letter-spacing: 2px;
-  margin-bottom: 28px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-}
-.report-container h2 {
-  font-family: var(--font-serif);
-  font-size: 16px;
-  color: var(--accent-warm);
-  margin: 24px 0 12px;
-  padding-left: 12px;
-  border-left: 2px solid var(--accent-gold);
-  letter-spacing: 2px;
-  font-weight: 500;
-}
-.report-container h3 {
-  font-family: var(--font-serif);
-  font-size: 14px;
-  color: var(--text-primary);
-  margin: 16px 0 8px;
-  font-weight: 500;
-}
-.report-container p {
-  font-size: 14px;
-  line-height: 2;
-  color: var(--text-secondary);
-  margin-bottom: 10px;
-  text-align: justify;
-}
-.report-container ul {
-  padding-left: 18px;
-  margin: 8px 0 12px;
-}
-.report-container li {
-  font-size: 14px;
-  line-height: 2;
-  color: var(--text-secondary);
-  list-style: none;
-  position: relative;
-  padding-left: 14px;
-}
-.report-container li::before {
-  content: '·';
-  position: absolute; left: 0;
-  color: var(--accent-gold);
-  font-weight: bold;
-}
-.report-container strong {
-  color: var(--text-primary);
-  font-weight: 500;
-}
-.report-container blockquote {
-  border-left: 2px solid rgba(201,169,110,0.3);
-  padding: 8px 16px;
-  margin: 12px 0;
-  background: rgba(201,169,110,0.05);
-  border-radius: 0 8px 8px 0;
-  font-style: italic;
-  color: var(--text-secondary);
-  font-size: 14px;
-  line-height: 1.9;
-}
-.report-container hr {
-  border: none;
-  height: 1px;
-  background: rgba(255,255,255,0.06);
-  margin: 20px 0;
-}
-.report-container .report-divider {
-  text-align: center;
-  color: var(--accent-gold);
-  font-size: 12px;
-  letter-spacing: 8px;
-  margin: 20px 0;
-  opacity: 0.5;
-}
-
-.download-btn {
-  display: block;
-  margin: 24px auto 8px;
-  padding: 12px 36px;
-  background: linear-gradient(135deg, rgba(201,169,110,0.25), rgba(201,169,110,0.1));
-  border: 1px solid rgba(201,169,110,0.3);
-  border-radius: 24px;
-  color: var(--accent-gold);
-  font-family: var(--font-serif);
-  font-size: 14px;
-  letter-spacing: 2px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-.download-btn:hover, .download-btn:active {
-  background: linear-gradient(135deg, rgba(201,169,110,0.35), rgba(201,169,110,0.2));
-  transform: translateY(-1px);
-}
-
-/* ===== Modal Styles ===== */
-@keyframes modalIn {
-  from { opacity: 0; transform: scale(0.9) translateY(30px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
-}
-
-/* ===== Report Styles ===== */
-.report-preview-section {
-  position: relative;
-}
-.report-preview-section.locked {
-  max-height: 500px;
-  overflow: hidden;
-}
-.report-preview-section.locked::after {
-  content: '';
-  position: absolute;
-  bottom: 0; left: 0; right: 0;
-  height: 160px;
-  background: linear-gradient(0deg,
-    rgba(14,16,42,0.98) 0%,
-    rgba(14,16,42,0.85) 30%,
-    rgba(14,16,42,0.5) 60%,
-    transparent 100%);
-  pointer-events: none;
-}
-.unlock-cta {
-  text-align: center;
-  padding: 24px 16px 12px;
-  position: relative;
-  z-index: 2;
-}
-.unlock-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 14px 32px;
-  background: linear-gradient(135deg, rgba(201,169,110,0.3), rgba(201,169,110,0.12));
-  border: 1px solid rgba(201,169,110,0.35);
-  border-radius: 28px;
-  color: var(--accent-gold);
-  font-family: var(--font-serif);
-  font-size: 15px;
-  letter-spacing: 2px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  animation: ctaGlow 3s ease-in-out infinite;
-}
-@keyframes ctaGlow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(201,169,110,0); }
-  50% { box-shadow: 0 0 24px 2px rgba(201,169,110,0.12); }
-}
-.unlock-btn:hover, .unlock-btn:active {
-  background: linear-gradient(135deg, rgba(201,169,110,0.45), rgba(201,169,110,0.2));
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(201,169,110,0.18);
-}
-.unlock-btn .arrow {
-  transition: transform 0.3s;
-}
-.unlock-btn:hover .arrow {
-  transform: translateX(3px);
-}
-.unlock-hint {
-  font-size: 12px;
-  color: var(--text-muted);
-  margin-top: 10px;
-  letter-spacing: 1px;
-}
-
-/* Locked sections */
-.report-locked-section {
-  opacity: 0.3;
-  pointer-events: none;
-  position: relative;
-}
-.report-locked-section h2,
-.report-locked-section h3 {
-  color: var(--text-muted) !important;
-}
-.report-locked-section p,
-.report-locked-section blockquote {
-  color: rgba(232,230,240,0.2) !important;
-  filter: blur(2px);
-  user-select: none;
-}
-
-/* ===== Input Area ===== */
-.input-area {
-  flex-shrink: 0;
-  padding: 12px 16px;
-  padding-bottom: calc(12px + var(--safe-bottom));
-  background: linear-gradient(0deg, rgba(10,14,39,0.95) 0%, rgba(10,14,39,0.8) 70%, transparent 100%);
-  position: relative;
-  z-index: 10;
-}
-.input-row {
-  display: flex;
-  align-items: flex-end;
-  gap: 10px;
-  max-width: 680px;
-  margin: 0 auto;
-}
-.input-wrapper {
-  flex: 1;
-  position: relative;
-}
-.input-wrapper textarea {
-  width: 100%;
-  min-height: 44px;
-  max-height: 120px;
-  padding: 12px 16px;
-  background: var(--input-bg);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 22px;
-  color: var(--text-primary);
-  font-family: var(--font-sans);
-  font-size: 15px;
-  line-height: 1.5;
-  resize: none;
-  outline: none;
-  transition: border-color 0.3s;
-  overflow-y: auto;
-}
-.input-wrapper textarea::placeholder {
-  color: var(--text-muted);
-}
-.input-wrapper textarea:focus {
-  border-color: rgba(201,169,110,0.3);
-}
-
-.send-btn {
-  width: 44px; height: 44px;
-  border-radius: 50%;
-  border: none;
-  background: linear-gradient(135deg, rgba(201,169,110,0.3), rgba(139,92,246,0.2));
-  color: var(--accent-gold);
-  font-size: 18px;
-  cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  transition: all 0.3s ease;
-  flex-shrink: 0;
-}
-.send-btn:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-}
-.send-btn:not(:disabled):hover {
-  transform: scale(1.05);
-  background: linear-gradient(135deg, rgba(201,169,110,0.45), rgba(139,92,246,0.3));
-}
-
-.mic-btn {
-  width: 44px; height: 44px;
-  border-radius: 50%;
-  border: 1px solid rgba(255,255,255,0.1);
-  background: var(--input-bg);
-  color: var(--text-secondary);
-  font-size: 18px;
-  cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  transition: all 0.3s ease;
-  flex-shrink: 0;
-  position: relative;
-  -webkit-user-select: none;
-  user-select: none;
-}
-.mic-btn.recording {
-  background: rgba(239,68,68,0.2);
-  border-color: rgba(239,68,68,0.4);
-  color: #ef4444;
-  animation: micPulse 1.5s ease infinite;
-}
-@keyframes micPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.3); }
-  50% { box-shadow: 0 0 0 8px rgba(239,68,68,0); }
-}
-.mic-btn.unsupported {
-  opacity: 0.3;
-  cursor: not-allowed;
-}
-
-.interim-text {
-  position: absolute;
-  bottom: 100%;
-  left: 0; right: 0;
-  padding: 6px 16px;
-  font-size: 13px;
-  color: var(--text-muted);
-  font-style: italic;
-}
-
-/* ===== Loading overlay for report ===== */
-.loading-overlay {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(10,14,39,0.85);
+/* ===== Hero Section ===== */
+.hero {
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  z-index: 100;
-  animation: fadeIn 0.5s ease;
-}
-@keyframes fadeIn {
-  from { opacity: 0; } to { opacity: 1; }
-}
-.loading-overlay .lotus {
-  width: 60px; height: 60px;
-  animation: lotusSpin 3s linear infinite;
-}
-@keyframes lotusSpin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-.loading-overlay .loading-text {
-  margin-top: 24px;
-  font-family: var(--font-serif);
-  font-size: 15px;
-  color: var(--text-secondary);
-  letter-spacing: 3px;
-  animation: loadingPulse 2s ease-in-out infinite;
-}
-@keyframes loadingPulse {
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 1; }
+  padding: 60px 24px 40px;
+  text-align: center;
+  position: relative;
 }
 
-/* ===== Background Particles ===== */
-.bg-particles {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  pointer-events: none;
-  overflow: hidden;
-  z-index: 0;
-}
-.particle {
+.hero::before {
+  content: '';
   position: absolute;
-  width: 2px; height: 2px;
-  background: rgba(201,169,110,0.15);
+  top: 20%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(201,169,110,0.08) 0%, transparent 70%);
   border-radius: 50%;
-  animation: float linear infinite;
-}
-@keyframes float {
-  0% { transform: translateY(100vh) scale(0); opacity: 0; }
-  10% { opacity: 1; }
-  90% { opacity: 1; }
-  100% { transform: translateY(-10vh) scale(1); opacity: 0; }
+  pointer-events: none;
 }
 
-/* ===== Responsive ===== */
-@media (max-width: 480px) {
-  .header { padding: 12px 14px 8px; }
-  .header-title { font-size: 16px; letter-spacing: 3px; }
-  .header-subtitle { font-size: 10px; }
-  .chat-area { padding: 16px 12px; }
-  .msg { max-width: 92%; font-size: 14px; }
-  .msg.ai { padding: 14px 16px; }
-  .msg.user { padding: 12px 16px; }
-  .report-container { padding: 20px 16px; }
-  .report-container h1 { font-size: 19px; }
-  .report-container h2 { font-size: 15px; }
-  .stage-label { font-size: 8px; }
-  .input-area { padding: 10px 12px; padding-bottom: calc(10px + var(--safe-bottom)); }
-}
-@media (min-width: 681px) {
-  .chat-area { padding: 24px 24px; }
-  .msg.ai { padding: 20px 24px; }
-}
-/* Enhanced Mic Button */
-.mic-btn-enhanced {
-  flex-shrink: 0;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  border: 2px solid var(--accent-gold);
-  background: linear-gradient(135deg, rgba(201,169,110,0.2), rgba(212,165,116,0.15));
+.brand-title {
+  font-family: var(--font-serif);
+  font-size: 42px;
+  font-weight: 300;
   color: var(--accent-gold);
-  cursor: pointer;
+  letter-spacing: 12px;
+  margin-bottom: 8px;
+  animation: fadeInDown 1.2s ease both;
+}
+
+.brand-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+  letter-spacing: 4px;
+  margin-bottom: 40px;
+  animation: fadeInDown 1.2s ease 0.2s both;
+}
+
+.tagline {
+  font-family: var(--font-serif);
+  font-size: 20px;
+  color: var(--text-secondary);
+  line-height: 2;
+  max-width: 320px;
+  margin-bottom: 16px;
+  animation: fadeInDown 1.2s ease 0.4s both;
+}
+
+.tagline-small {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-bottom: 48px;
+  animation: fadeInDown 1.2s ease 0.6s both;
+}
+
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== Version Cards ===== */
+.version-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: 380px;
+  animation: fadeInUp 0.8s ease 0.8s both;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.version-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  padding: 24px 20px;
+  text-decoration: none;
+  color: var(--text-primary);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.version-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent-gold), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.version-card:active,
+.version-card:hover {
+  background: rgba(255,255,255,0.1);
+  border-color: rgba(201,169,110,0.3);
+  transform: translateY(-2px);
+}
+
+.version-card:active::before,
+.version-card:hover::before {
+  opacity: 1;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.card-badge {
+  font-size: 10px;
+  padding: 3px 10px;
+  border-radius: 10px;
+  letter-spacing: 1px;
+  font-weight: 500;
+}
+
+.badge-free {
+  background: rgba(201,169,110,0.15);
+  color: var(--accent-gold);
+  border: 1px solid rgba(201,169,110,0.3);
+}
+
+.badge-pro {
+  background: rgba(139,92,246,0.15);
+  color: #a78bfa;
+  border: 1px solid rgba(139,92,246,0.3);
+}
+
+.badge-deep {
+  background: rgba(59,130,246,0.15);
+  color: #93c5fd;
+  border: 1px solid rgba(59,130,246,0.3);
+}
+
+.card-price {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.card-title {
+  font-family: var(--font-serif);
+  font-size: 18px;
+  font-weight: 500;
+  margin-bottom: 6px;
+  color: var(--text-primary);
+}
+
+.card-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  letter-spacing: 1px;
+}
+
+.card-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+.card-arrow {
+  position: absolute;
+  right: 20px;
+  bottom: 24px;
+  font-size: 18px;
+  color: var(--text-muted);
+  transition: transform 0.3s;
+}
+
+.version-card:hover .card-arrow {
+  transform: translateX(4px);
+  color: var(--accent-gold);
+}
+
+/* ===== Features Section ===== */
+.features {
+  padding: 60px 24px;
+  max-width: 380px;
+  margin: 0 auto;
+  animation: fadeInUp 0.8s ease 1s both;
+}
+
+.features-title {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  color: var(--accent-gold);
+  text-align: center;
+  letter-spacing: 3px;
+  margin-bottom: 32px;
+}
+
+.feature-item {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+  align-items: flex-start;
+}
+
+.feature-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s ease;
-  position: relative;
-  box-shadow: 0 4px 15px rgba(201,169,110,0.3);
-}
-.mic-btn-enhanced:hover {
-  transform: scale(1.05);
-  box-shadow: 0 6px 20px rgba(201,169,110,0.4);
-}
-.mic-btn-enhanced.recording {
-  background: linear-gradient(135deg, rgba(239,68,68,0.3), rgba(220,38,38,0.2));
-  border-color: #ef4444;
-  color: #ef4444;
-  animation: pulse-recording 1.5s ease-in-out infinite;
-}
-@keyframes pulse-recording {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.08); }
-}
-.mic-btn-enhanced.unsupported {
-  opacity: 0.3;
-  cursor: not-allowed;
+  font-size: 20px;
+  flex-shrink: 0;
 }
 
-/* 微信引导浮层 */
-.wechat-guide {
-  display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.85); z-index: 9999;
-  flex-direction: column; align-items: center; justify-content: center;
-  color: #fff; text-align: center; padding: 20px;
+.feature-text h3 {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 4px;
 }
-.wechat-guide.show { display: flex; }
-.wechat-guide .arrow { font-size: 60px; animation: bounce 1s infinite; margin-bottom: 20px; }
-.wechat-guide p { font-size: 16px; line-height: 2; margin: 8px 0; }
-.wechat-guide .close-guide { margin-top: 24px; padding: 10px 28px; background: var(--accent-gold); border: none; border-radius: 20px; color: #fff; font-size: 15px; }
-@keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+
+.feature-text p {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* ===== Footer ===== */
+.footer {
+  padding: 40px 24px 60px;
+  text-align: center;
+  animation: fadeInUp 0.8s ease 1.2s both;
+}
+
+.footer-brand {
+  font-family: var(--font-serif);
+  font-size: 14px;
+  color: var(--text-muted);
+  letter-spacing: 2px;
+  margin-bottom: 8px;
+}
+
+.footer-copy {
+  font-size: 11px;
+  color: rgba(232,230,240,0.25);
+}
+
+/* ===== Responsive ===== */
+@media (min-width: 768px) {
+  .version-cards { flex-direction: row; flex-wrap: wrap; max-width: 720px; }
+  .version-card { flex: 1; min-width: 200px; }
+  .features { max-width: 720px; }
+}
 </style>
-
-<!-- 微信分享优化 -->
-<meta property="og:title" content="观澜·东方天赋定位测评">
-<meta property="og:description" content="发现你的天赋优势，找到人生方向。81分钟深度对话，生成专属天赋定位报告。">
-<meta property="og:type" content="website">
-<meta name="format-detection" content="telephone=no">
-<meta http-equiv="Cache-Control" content="no-cache">
-
-<!-- PWA & Mobile Optimization -->
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="观澜">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#0a0e27">
-<meta name="format-detection" content="telephone=no">
-<meta name="x5-orientation" content="portrait">
-<meta name="x5-page-mode" content="app">
-<link rel="manifest" href="manifest.json">
 </head>
 <body>
-<div class="wechat-guide" id="wechatGuide">
-  <div class="arrow">↗</div>
-  <p><strong>语音输入需要浏览器支持</strong></p>
-  <p>点击右上角 ··· → "在浏览器中打开"</p>
-  <p>即可获得完整语音体验</p>
-  <p style="font-size:13px;opacity:0.6;margin-top:12px;">当然，直接在这里打字也完全OK</p>
-  <button class="close-guide" onclick="this.parentElement.classList.remove('show')">我知道了</button>
-</div>
 
+<section class="hero">
+  <h1 class="brand-title">观 澜</h1>
+  <p class="brand-sub">东方天赋定位</p>
+  <p class="tagline">水无常形，天赋无定式<br>聊一聊，看见你没发现的天赋</p>
+  <p class="tagline-small">不是测试，不是分析，就是一场关于自己的深度对话</p>
 
-<!-- Background Particles -->
-<div class="bg-particles" id="bgParticles"></div>
-
-<!-- Main App -->
-<div id="app">
-  <!-- Header -->
-  <div class="header">
-    <div class="header-title">观 澜</div>
-    <div class="header-subtitle">东方天赋定位</div>
-    <div class="progress-container" id="progressBar">
-      <div class="progress-step" data-stage="0"><div class="fill"></div></div>
-      <div class="progress-step" data-stage="1"><div class="fill"></div></div>
-      <div class="progress-step" data-stage="2"><div class="fill"></div></div>
-      <div class="progress-step" data-stage="3"><div class="fill"></div></div>
-      <div class="progress-step" data-stage="4"><div class="fill"></div></div>
-      <div class="progress-step" data-stage="5"><div class="fill"></div></div>
-    </div>
-    <div class="stage-labels">
-      <div class="stage-label" data-stage="0">暖场</div>
-      <div class="stage-label" data-stage="1">观流</div>
-      <div class="stage-label" data-stage="2">溯源</div>
-      <div class="stage-label" data-stage="3">观照</div>
-      <div class="stage-label" data-stage="4">定位</div>
-      <div class="stage-label" data-stage="5">报告</div>
-    </div>
-  </div>
-
-  <!-- Chat Area -->
-  <div class="chat-area" id="chatArea">
-    <div class="chat-area-inner" id="chatInner"></div>
-  </div>
-
-  <!-- Input Area -->
-  <div class="input-area" id="inputArea">
-    <div class="input-row">
-      <button class="mic-btn-enhanced" id="micBtn" aria-label="点击开始语音输入">
-        <svg class="mic-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-          <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-          <line x1="12" y1="19" x2="12" y2="23"/>
-          <line x1="8" y1="23" x2="16" y2="23"/>
-        </svg>
-        <div class="mic-status" style="display:none;">录音中</div>
-      </button>
-      <div class="input-wrapper">
-        <div class="interim-text" id="interimText" style="display:none;"></div>
-        <textarea id="userInput" placeholder="说说你的想法……" rows="1"></textarea>
+  <div class="version-cards">
+    <!-- 快速版 -->
+    <a href="../quick/" class="version-card">
+      <div class="card-header">
+        <span class="card-badge badge-free">免费</span>
+        <span class="card-price">5-7 分钟</span>
       </div>
-      <button class="send-btn" id="sendBtn" disabled aria-label="发送">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="22" y1="2" x2="11" y2="13"/>
-          <polygon points="22 2 15 22 11 13 2 9 22 2"/>
-        </svg>
-      </button>
+      <h2 class="card-title">快速版 · 天赋一瞥</h2>
+      <p class="card-meta">5 道核心对话</p>
+      <p class="card-desc">快速发现你的天赋原型，生成专属天赋标签和分享卡片。适合第一次体验。</p>
+      <span class="card-arrow">→</span>
+    </a>
+
+    <!-- 专业版 -->
+    <a href="../pro/" class="version-card">
+      <div class="card-header">
+        <span class="card-badge badge-pro">推荐</span>
+        <span class="card-price">约 21 分钟</span>
+      </div>
+      <h2 class="card-title">专业版 · 天赋定位</h2>
+      <p class="card-meta">15 道深度对话</p>
+      <p class="card-desc">完整天赋画像 + 五维雷达图 + 百日行动计划。最多人选择的版本。</p>
+      <span class="card-arrow">→</span>
+    </a>
+
+    <!-- 深度版 -->
+    <a href="../deep/" class="version-card">
+      <div class="card-header">
+        <span class="card-badge badge-deep">深度</span>
+        <span class="card-price">81 分钟</span>
+      </div>
+      <h2 class="card-title">深度版 · 天赋深潜</h2>
+      <p class="card-meta">21 道灵魂对话 · 可分次完成</p>
+      <p class="card-desc">九九八十一难，认识自己也一样。最完整的天赋探索，像一场关于自己的修行。</p>
+      <span class="card-arrow">→</span>
+    </a>
+  </div>
+</section>
+
+<section class="features">
+  <h2 class="features-title">为什么选择观澜</h2>
+
+  <div class="feature-item">
+    <div class="feature-icon">🎯</div>
+    <div class="feature-text">
+      <h3>不是问卷，是对话</h3>
+      <p>像和一位智慧朋友聊天，在轻松的对话中自然发现你的天赋。不用纠结选项，说你想说的。</p>
     </div>
   </div>
-</div>
 
-<script>
-// ===== 全局状态 =====
-const APP_STATE = {
-  currentStage: -1,       // -1=未开始, 0=暖场, 1=观流, 2=溯源, 3=观照, 4=定位, 5=报告
-  currentQuestion: -1,    // 当前问题在当前阶段的索引
-  answers: {},            // { qIndex: answerText }
-  waitingForStart: false, // 等待用户说"准备好了"
-  isTyping: false,        // 正在打字动画中
-  isProcessing: false,    // 正在处理过渡
-  reportGenerated: false,
-  unlocked: true,         // 始终显示完整报告
-};
+  <div class="feature-item">
+    <div class="feature-icon">🌊</div>
+    <div class="feature-text">
+      <h3>东方哲学，不是西方量表</h3>
+      <p>用水的智慧理解天赋——涌泉、听潮、深潭、破冰……每种天赋都有它的流向和力量。</p>
+    </div>
+  </div>
+
+  <div class="feature-item">
+    <div class="feature-icon">📱</div>
+    <div class="feature-text">
+      <h3>语音输入，像说话一样自然</h3>
+      <p>支持语音聊天输入（Chrome/Safari），不想打字就直接说。松开按钮，自动识别发送。</p>
+    </div>
+  </div>
+
+  <div class="feature-item">
+    <div class="feature-icon">🎴</div>
+    <div class="feature-text">
+      <h3>生成你的天赋卡片</h3>
+      <p>东方美学风格的分享卡片，一键保存发朋友圈。让别人看到就想做。</p>
+    </div>
+  </div>
+
+  <div class="feature-item">
+    <div class="feature-icon">🗺️</div>
+    <div class="feature-text">
+      <h3>不止发现，更重行动</h3>
+      <p>报告包含百日行动计划（30/60/90天），把天赋变成具体的下一步。对接《小强时代》方法论。</p>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <p class="footer-brand">观澜 · 东方天赋定位</p>
+  <p class="footer-copy">大宝洲 · 出品 | 100% 自主知识产权</p>
+</footer>
 
-// ===== 对话流程定义 =====
-const STAGES = [
-  {
-    id: 0, name: '暖场', label: '暖场 · 入水',
-    transition: '好，我们开始。',
-    questions: [
-      { key: 'q1', text: '最近一次你做事做到忘了时间——连手机都忘了看——是什么时候？在做什么？' },
-      { key: 'q2', text: '如果明天突然多出一整天假——没安排、没人找你、没有任何义务——你最可能拿这一天来干嘛？' },
-    ]
-  },
-  {
-    id: 1, name: '观流', label: '观流 · 能量流向',
-    transition: '你刚才提到的这些很有意思。我们往回拉一点，看看更大的画面——',
-    questions: [
-      { key: 'q3', text: '过去三年——不管赚没赚到钱、不管有没有人夸——你最自愿花时间去做的三件事是什么？' },
-      { key: 'q4', text: "做这些事的时候，有没有什么时候特别有劲——不觉得累、不觉得烦？什么情况下又会觉得'怎么还没做完'？" },
-      { key: 'q5', text: '身边的人——不是工作上，是生活里——会反复找你帮什么忙、问你什么意见？' },
-      { key: 'q6', text: "反过来——有没有什么赚钱方式或者工作状态，你打心底排斥？给再多钱也不愿意长期干？" },
-      { key: 'q7', text: "从你小时候到现在，不管换了什么环境什么圈子，有没有一类事你一直在做？像水纹——水换了，纹路还在。" },
-    ]
-  },
-  {
-    id: 2, name: '溯源', label: '溯源 · 痛苦即入口',
-    transition: "前面我们聊了你投入精力的地方。现在换一个角度——聊聊那些让你不舒服的、想改变的东西。有时候天赋不在你喜欢的事里，而在你受不了的事里。",
-    questions: [
-      { key: 'q8', text: '过去一年，最让你消耗的不是体力、而是心的事情是什么？做完之后心里空落落的那种。' },
-      { key: 'q9', text: '你自己经历过的——不是听别人说的，是你自己熬过来的——最长的一段痛苦或迷茫是什么？' },
-      { key: 'q10', text: '如果你这辈子只能帮一大群人解决一个问题，你会选哪个？不是因为最赚钱，而是因为你经历过、你懂。' },
-      { key: 'q11', text: '你见过哪些人在走一条明显有问题的路，你一眼就能看到漏洞，但他们浑然不觉？' },
-      { key: 'q12', text: "你觉得'为什么是我来解决这个问题'？你的什么独特经历让你比任何人都更懂？" },
-    ]
-  },
-  {
-    id: 3, name: '观照', label: '观照 · 照见真我',
-    transition: "前面我们聊了你在做什么、你受不了什么。现在聊一个更根本的问题——你是谁。不是你的职业、你的公司、你的头衔——是剥掉所有这些之后，那个还在的东西。",
-    questions: [
-      { key: 'q13', text: '如果把现在的所有身份都拿走——公司、收入、头衔、人脉、经验——你觉得你还剩下什么？' },
-      { key: 'q14', text: '说三个你发自内心敬仰的人——必须是你认识的、活着的。你仰望他们什么？' },
-      { key: 'q15', text: "你最不想成为什么样的人？不是失败的人，而是哪种活法、哪种状态，你打心底拒绝？" },
-      { key: 'q16', text: '如果全世界只能听到你说一句话，你会说什么？' },
-      { key: 'q17', text: "有没有什么事，别人觉得很难，但你觉得像呼吸一样自然？" },
-    ]
-  },
-  {
-    id: 4, name: '定位', label: '定位 · 道器合一',
-    transition: "好，我们聊了很多了。现在把这些汇聚一下——看看你的天赋指向什么方向。",
-    questions: [
-      { key: 'q18', text: "综合我们聊的所有内容，如果只用一句话说'我的核心天赋是什么'——你会怎么说？" },
-      { key: 'q19', text: '你的天赋在什么环境下会发光？什么环境下会枯萎？' },
-      { key: 'q20', text: '你的天赋最能帮到哪类人？说具体——多大、什么状态、困惑什么？' },
-      { key: 'q21', text: '如果这周就要启动——不是宏大计划，就是这周——你的最小切口是什么？' },
-    ]
-  },
-];
-
-// ===== 开场白 =====
-const OPENING = `你好。欢迎来到「观澜」。
-
-接下来八十一分钟——取经路上有八十一难，认识自己也一样——我们聊聊天。
-不是测试，不是分析，就是聊聊。聊着聊着，你可能会看见一些平时没注意到的东西。
-
-我会问你一些问题。有的很好回答，有的需要想一想。不用想太久，第一反应往往最准。也没有标准答案——这里只有真不真，没有对不对。
-
-准备好了，就告诉我。`;
-
-// ===== DOM Elements =====
-const app = document.getElementById('app');
-const chatArea = document.getElementById('chatArea');
-const chatInner = document.getElementById('chatInner');
-const userInput = document.getElementById('userInput');
-const sendBtn = document.getElementById('sendBtn');
-const micBtn = document.getElementById('micBtn');
-const interimText = document.getElementById('interimText');
-const progressBar = document.getElementById('progressBar');
-
-// ===== 初始化 =====
-function init() {
-  // 检测微信浏览器，显示语音引导
-  const ua = navigator.userAgent.toLowerCase();
-  const isWeChat = ua.includes('micromessenger');
-  const isAndroid = ua.includes('android');
-  const hasVoice = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
-  
-  if (isWeChat && isAndroid && !hasVoice) {
-    // 微信Android + 不支持语音 → 首次访问显示引导
-    if (!localStorage.getItem('wechat_guide_shown')) {
-      setTimeout(() => {
-        document.getElementById('wechatGuide').classList.add('show');
-        localStorage.setItem('wechat_guide_shown', '1');
-      }, 2000);
-    }
-  }
-
-  createParticles();
-  setupInputHandlers();
-  setupVoiceInput();
-  loadProgress();
-
-  // 3秒渐入
-  setTimeout(() => {
-    app.classList.add('visible');
-    // 如果无保存进度，显示开场白
-    if (APP_STATE.currentStage === -1 && Object.keys(APP_STATE.answers).length === 0) {
-      showOpening();
-    } else {
-      // 恢复进度
-      restoreProgress();
-    }
-  }, 300);
-}
-
-// ===== 背景粒子 =====
-function createParticles() {
-  const container = document.getElementById('bgParticles');
-  for (let i = 0; i < 20; i++) {
-    const p = document.createElement('div');
-    p.className = 'particle';
-    p.style.left = Math.random() * 100 + '%';
-    p.style.animationDuration = (8 + Math.random() * 12) + 's';
-    p.style.animationDelay = Math.random() * 10 + 's';
-    p.style.width = p.style.height = (1 + Math.random() * 2) + 'px';
-    container.appendChild(p);
-  }
-}
-
-// ===== 输入框处理 =====
-function setupInputHandlers() {
-  userInput.addEventListener('input', () => {
-    sendBtn.disabled = userInput.value.trim() === '';
-    // 自动调整高度
-    userInput.style.height = 'auto';
-    userInput.style.height = Math.min(userInput.scrollHeight, 120) + 'px';
-  });
-
-  userInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      if (!sendBtn.disabled) handleSend();
-    }
-  });
-
-  sendBtn.addEventListener('click', handleSend);
-}
-
-// ===== 发送消息 =====
-function handleSend() {
-  const text = userInput.value.trim();
-  if (!text || APP_STATE.isTyping || APP_STATE.isProcessing) return;
-
-  // 添加用户消息
-  addUserMessage(text);
-  userInput.value = '';
-  userInput.style.height = 'auto';
-  sendBtn.disabled = true;
-
-  // 处理回答
-  processAnswer(text);
-}
-
-// ===== 添加消息到界面 =====
-function addUserMessage(text) {
-  const el = document.createElement('div');
-  el.className = 'msg user';
-  el.textContent = text;
-  chatInner.appendChild(el);
-  scrollToBottom();
-}
-
-function addAIMessage(text, callback) {
-  const el = document.createElement('div');
-  el.className = 'msg ai';
-  chatInner.appendChild(el);
-  APP_STATE.isTyping = true;
-
-  typewriterEffect(el, text, () => {
-    APP_STATE.isTyping = false;
-    scrollToBottom();
-    if (callback) callback();
-  });
-  scrollToBottom();
-}
-
-function addSummaryCard(title, text) {
-  const el = document.createElement('div');
-  el.className = 'msg summary-card';
-  el.innerHTML = `<div class="summary-title">${title}</div><div class="summary-text">${text}</div>`;
-  chatInner.appendChild(el);
-  scrollToBottom();
-}
-
-function showThinking(callback) {
-  const el = document.createElement('div');
-  el.className = 'thinking';
-  el.id = 'thinkingEl';
-  el.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
-  chatInner.appendChild(el);
-  scrollToBottom();
-
-  setTimeout(() => {
-    el.remove();
-    if (callback) callback();
-  }, 1200 + Math.random() * 800);
-}
-
-// ===== 打字机效果 =====
-function typewriterEffect(element, text, onComplete) {
-  let i = 0;
-  const cursor = document.createElement('span');
-  cursor.className = 'typing-cursor';
-  element.appendChild(cursor);
-
-  const speed = Math.max(20, Math.min(50, 3000 / text.length));
-
-  function type() {
-    if (i < text.length) {
-      const char = text.charAt(i);
-      if (char === '\n') {
-        element.insertBefore(document.createElement('br'), cursor);
-      } else {
-        element.insertBefore(document.createTextNode(char), cursor);
-      }
-      i++;
-      scrollToBottom();
-      setTimeout(type, speed);
-    } else {
-      cursor.remove();
-      if (onComplete) onComplete();
-    }
-  }
-  type();
-}
-
-// ===== 滚动到底部 =====
-function scrollToBottom() {
-  requestAnimationFrame(() => {
-    chatArea.scrollTop = chatArea.scrollHeight;
-  });
-}
-
-// ===== 进度条更新 =====
-function updateProgress(stage, total) {
-  const steps = progressBar.querySelectorAll('.progress-step');
-  const labels = document.querySelectorAll('.stage-label');
-
-  steps.forEach((step, idx) => {
-    step.classList.remove('active', 'current');
-    if (idx < stage) step.classList.add('active');
-    else if (idx === stage) step.classList.add('current');
-  });
-
-  labels.forEach((label, idx) => {
-    label.classList.toggle('active', idx <= stage);
-  });
-}
-
-// ===== 对话流程控制 =====
-function showOpening() {
-  APP_STATE.waitingForStart = true;
-  APP_STATE.currentStage = -1;
-  addAIMessage(OPENING);
-  saveProgress();
-}
-
-function processAnswer(text) {
-  // 等待开始状态
-  if (APP_STATE.waitingForStart) {
-    APP_STATE.waitingForStart = false;
-    APP_STATE.currentStage = 0;
-    APP_STATE.currentQuestion = 0;
-    updateProgress(0);
-    saveProgress();
-
-    showThinking(() => {
-      addAIMessage(STAGES[0].transition, () => {
-        setTimeout(() => askQuestion(0, 0), 600);
-      });
-    });
-    return;
-  }
-
-  // 保存答案
-  const stage = STAGES[APP_STATE.currentStage];
-  const question = stage.questions[APP_STATE.currentQuestion];
-  APP_STATE.answers[question.key] = text;
-  saveProgress();
-
-  APP_STATE.isProcessing = true;
-
-  showThinking(() => {
-    APP_STATE.isProcessing = false;
-    const nextQ = APP_STATE.currentQuestion + 1;
-
-    if (nextQ < stage.questions.length) {
-      // 还有问题
-      APP_STATE.currentQuestion = nextQ;
-      saveProgress();
-      askQuestion(APP_STATE.currentStage, nextQ);
-    } else {
-      // 阶段结束，生成小结
-      generateStageSummary(APP_STATE.currentStage);
-    }
-  });
-}
-
-function askQuestion(stageIdx, qIdx) {
-  const question = STAGES[stageIdx].questions[qIdx];
-  addAIMessage(question.text);
-}
-
-function generateStageSummary(stageIdx) {
-  const stage = STAGES[stageIdx];
-  // 收集该阶段所有答案的关键词
-  const answerTexts = stage.questions.map(q => APP_STATE.answers[q.key] || '');
-  const summary = createSummary(stage, answerTexts);
-
-  addSummaryCard(`${stage.label} · 小结`, summary);
-  saveProgress();
-
-  // 进入下一阶段
-  setTimeout(() => {
-    const nextStage = stageIdx + 1;
-    if (nextStage < STAGES.length) {
-      APP_STATE.currentStage = nextStage;
-      APP_STATE.currentQuestion = 0;
-      updateProgress(nextStage);
-      saveProgress();
-
-      showThinking(() => {
-        addAIMessage(STAGES[nextStage].transition, () => {
-          setTimeout(() => askQuestion(nextStage, 0), 600);
-        });
-      });
-    } else {
-      // 所有阶段完成，生成报告
-      APP_STATE.currentStage = 5;
-      updateProgress(5);
-      saveProgress();
-      generateReport();
-    }
-  }, 2000);
-}
-
-// ===== 生成阶段小结 =====
-function createSummary(stage, answers) {
-  const combined = answers.join('');
-  // 提取一些有意义的短句作为关键词提示
-  const summaries = {
-    0: extractWarmupSummary(answers),
-    1: extractFlowSummary(answers),
-    2: extractPainSummary(answers),
-    3: extractIdentitySummary(answers),
-    4: extractPositioningSummary(answers),
-  };
-  return summaries[stage.id] || combined.slice(0, 100);
-}
-
-function extractWarmupSummary(answers) {
-  const [a1, a2] = answers;
-  return `你在「${extractKeywords(a1, 8)}」中找到了忘我的心流状态，而理想的一天你想留给「${extractKeywords(a2, 8)}」。这些线索指向你内心真正渴望的空间。接下来，让我们看看更大的画面。`;
-}
-
-function extractFlowSummary(answers) {
-  const kws = answers.map(a => extractKeywords(a, 6)).filter(Boolean).slice(0, 3);
-  return `你的能量流向${kws.join('、')}这些方向。你在${extractKeywords(answers[1] || '', 6)}时最有力量，而在${extractKeywords(answers[3] || '', 6)}时感到消耗。你身边的人反复因为${extractKeywords(answers[2] || '', 6)}找到你。这条脉络正在清晰。`;
-}
-
-function extractPainSummary(answers) {
-  return `你的痛苦地图逐渐清晰——日常消耗在「${extractKeywords(answers[0] || '', 8)}」，最深的经历是「${extractKeywords(answers[1] || '', 8)}」，而你想帮人解决的，是「${extractKeywords(answers[2] || '', 8)}」。痛苦不是天赋的反面，而是天赋的另一种表达方式。让我们继续向内看。`;
-}
-
-function extractIdentitySummary(answers) {
-  return `剥掉所有标签后，你看见的核心是「${extractKeywords(answers[0] || '', 10)}」。你仰望的人身上有「${extractKeywords(answers[1] || '', 8)}」的品质，而你坚决拒绝的活法是「${extractKeywords(answers[2] || '', 8)}」。那个最核心的你，正在浮现。让我们把这一切汇聚。`;
-}
-
-function extractPositioningSummary(answers) {
-  return `你的核心天赋指向「${extractKeywords(answers[0] || '', 12)}」，在「${extractKeywords(answers[1] || '', 8)}」的环境中发光，最能帮助「${extractKeywords(answers[2] || '', 10)}」。而你的第一步，是「${extractKeywords(answers[3] || '', 10)}」。方向已经清晰。现在，让我为你整理一份完整的报告。`;
-}
-
-function extractKeywords(text, maxLen) {
-  if (!text) return '……';
-  // 简单提取：取最核心的片段
-  const trimmed = text.replace(/\s+/g, ' ').trim();
-  if (trimmed.length <= maxLen) return trimmed;
-  // 尝试提取引号内的内容
-  const quoted = trimmed.match(/[「『""''](.*?)[」』""'']/);
-  if (quoted) return quoted[1].slice(0, maxLen);
-  return trimmed.slice(0, maxLen) + '……';
-}
-
-// ===== 报告生成 =====
-function generateReport() {
-  // 显示加载动画
-  const overlay = document.createElement('div');
-  overlay.className = 'loading-overlay';
-  overlay.id = 'loadingOverlay';
-  overlay.innerHTML = `
-    <svg class="lotus" viewBox="0 0 100 100">
-      <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(201,169,110,0.3)" stroke-width="1"/>
-      <circle cx="50" cy="50" r="30" fill="none" stroke="rgba(201,169,110,0.2)" stroke-width="1"/>
-      <circle cx="50" cy="50" r="20" fill="none" stroke="rgba(201,169,110,0.15)" stroke-width="1"/>
-      <path d="M50 10 Q65 35 50 50 Q35 35 50 10" fill="rgba(201,169,110,0.15)" stroke="rgba(201,169,110,0.3)" stroke-width="0.5"/>
-      <path d="M90 50 Q65 65 50 50 Q65 35 90 50" fill="rgba(201,169,110,0.15)" stroke="rgba(201,169,110,0.3)" stroke-width="0.5"/>
-      <path d="M50 90 Q35 65 50 50 Q65 65 50 90" fill="rgba(201,169,110,0.15)" stroke="rgba(201,169,110,0.3)" stroke-width="0.5"/>
-      <path d="M10 50 Q35 35 50 50 Q35 65 10 50" fill="rgba(201,169,110,0.15)" stroke="rgba(201,169,110,0.3)" stroke-width="0.5"/>
-    </svg>
-    <div class="loading-text">正在整理你的天赋脉络……</div>
-  `;
-  document.body.appendChild(overlay);
-
-  setTimeout(() => {
-    overlay.remove();
-    addAIMessage('让我把你说的这些整理成一份专属的天赋定位报告……');
-
-    setTimeout(() => {
-      const report = buildReport();
-      displayReport(report);
-      APP_STATE.reportGenerated = true;
-      saveProgress();
-    }, 1500);
-  }, 3000);
-}
-
-// ===== 构建报告内容 =====
-function buildReport() {
-  const a = APP_STATE.answers;
-  const now = new Date();
-  const dateStr = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日`;
-
-  const report = {
-    title: '天赋定位报告',
-    subtitle: `观澜 · 东方天赋定位 | ${dateStr}`,
-    sections: []
-  };
-
-  // 1. 天赋素描
-  report.sections.push({
-    type: 'h2', text: '壹 · 天赋素描'
-  });
-  report.sections.push({
-    type: 'paragraph',
-    text: buildTalentPortrait(a)
-  });
-  report.sections.push({ type: 'divider' });
-
-  // 2. 六层透视
-  report.sections.push({ type: 'h2', text: '贰 · 六层透视' });
-
-  report.sections.push({ type: 'h3', text: '观流 · 能量流向' });
-  report.sections.push({
-    type: 'paragraph',
-    text: `你自愿投入的事情是：${a.q3 || '未回答'}。在做这些事情时，你最有力量的时刻是${a.q4 || '未回答'}。你的能量有明显的方向——它流向那些能让你感到「忘我」的事情，而在${a.q6 || '某些状态'}中急剧流失。这说明你的天赋不是均匀分布的，它有明确的偏好的方向。`
-  });
-
-  report.sections.push({ type: 'h3', text: '闻声 · 关系映射' });
-  report.sections.push({
-    type: 'paragraph',
-    text: `生活里的人反复找你帮的忙是：${a.q5 || '未回答'}。这说明在别人的眼中，你的天然角色是「被需要的那个人」——而这种被需要，往往就是你天赋的外在投射。别人看到了你自己可能没意识到的能力。`
-  });
-
-  report.sections.push({ type: 'h3', text: '照壁 · 阻力图谱' });
-  report.sections.push({
-    type: 'paragraph',
-    text: `你打心底排斥的是：${a.q6 || '未回答'}。这些排斥不是缺点，而是「反天赋信号」——它们精确地画出了你天赋的边界。天赋的反面往往不是无能，而是消耗。你排斥的不是能力，而是那种让天赋变形的环境。`
-  });
-
-  report.sections.push({ type: 'h3', text: '观澜 · 人生水纹' });
-  report.sections.push({
-    type: 'paragraph',
-    text: `从小到大你一直在做的事情是：${a.q7 || '未回答'}。这是你最深层的水纹——换了无数条河，纹路却一模一样。这不是习惯，这是天赋的底层代码。`
-  });
-
-  report.sections.push({ type: 'h3', text: '辨味 · 真假热爱' });
-  report.sections.push({
-    type: 'paragraph',
-    text: `真味：${a.q1 || '未回答'}中你体验到的忘我状态，那是天赋在说话。假味：${a.q6 || '未回答'}中的消耗感，那是天赋在沉默。区分真假热爱的标准很简单——真热爱做完之后你累但满足，假热爱做完之后你累且空虚。`
-  });
-
-  report.sections.push({ type: 'h3', text: '归一 · 内在脉络' });
-  report.sections.push({
-    type: 'paragraph',
-    text: `贯穿所有答案的那条线是：你在${extractKeywords(a.q1 || '', 10)}中找到心流，在${extractKeywords(a.q5 || '', 10)}中被他人需要，在${extractKeywords(a.q10 || '', 10)}中看到使命。这三件事指向同一个地方——你的天赋核心区域。`
-  });
-  report.sections.push({ type: 'divider' });
-
-  // 3. 溯源·痛苦地图
-  report.sections.push({ type: 'h2', text: '叁 · 溯源 · 痛苦地图' });
-
-  report.sections.push({ type: 'h3', text: '日常之痛' });
-  report.sections.push({
-    type: 'paragraph',
-    text: `${a.q8 || '未回答'}。这种痛不是大起大落的痛，而是钝刀子割肉的消耗——它在反复提醒你，有些事情在错配你的能量。`
-  });
-
-  report.sections.push({ type: 'h3', text: '切肤之痛' });
-  report.sections.push({
-    type: 'paragraph',
-    text: `${a.q9 || '未回答'}。这段经历是你生命的裂缝，但光正是从这里照进来的。你从中学到的东西，是任何课程都无法替代的。`
-  });
-
-  report.sections.push({ type: 'h3', text: '使命之痛' });
-  report.sections.push({
-    type: 'paragraph',
-    text: `你想帮人解决的问题是：${a.q10 || '未回答'}。这个问题的特别之处在于——你之所以能帮，正是因为你走过这条路。你的伤口就是你的地图。`
-  });
-
-  report.sections.push({ type: 'h3', text: '痛苦 → 天赋映射' });
-  report.sections.push({
-    type: 'paragraph',
-    text: `你的痛苦指向的天赋方向：你能看见${extractKeywords(a.q11 || '', 12)}这些别人看不见的漏洞。而你的独特资格是——${a.q12 || '未回答'}。这就是为什么是你，而不是别人。`
-  });
-  report.sections.push({ type: 'divider' });
-
-  // 4. 观照·身份内核
-  report.sections.push({ type: 'h2', text: '肆 · 观照 · 身份内核' });
-
-  report.sections.push({ type: 'h3', text: '真我画像' });
-  report.sections.push({
-    type: 'paragraph',
-    text: `剥掉所有标签后，你剩下的核心是：${a.q13 || '未回答'}。这不是你「拥有」的东西，而是你「就是」的东西。这个内核不会因为外部条件变化而消失。`
-  });
-
-  report.sections.push({ type: 'h3', text: '镜像投射' });
-  report.sections.push({
-    type: 'paragraph',
-    text: `你敬仰的人身上有这些品质：${a.q14 || '未回答'}。你最不想成为的样子：${a.q15 || '未回答'}。这两个极端画出了你内在的 compass——你的人生方向就在这两极之间。`
-  });
-
-  report.sections.push({ type: 'h3', text: '天赋内核' });
-  report.sections.push({
-    type: 'paragraph',
-    text: `你发自内心觉得像呼吸一样自然的事：${a.q17 || '未回答'}。如果全世界只能听你说一句话：${a.q16 || '未回答'}。这些合在一起，就是你天赋的「内核编码」——它决定了你会以什么样的方式存在于这个世界。`
-  });
-  report.sections.push({ type: 'divider' });
-
-  // 5. 天赋定位
-  report.sections.push({ type: 'h2', text: '伍 · 天赋定位' });
-
-  report.sections.push({ type: 'h3', text: '核心天赋' });
-  report.sections.push({
-    type: 'blockquote',
-    text: a.q18 || '（基于你的回答提炼核心天赋语句）'
-  });
-
-  report.sections.push({ type: 'h3', text: '天赋放大器' });
-  report.sections.push({
-    type: 'paragraph',
-    text: `你的天赋在以下环境会发光：${a.q19 ? a.q19.split(/[,，。;；]/).filter(Boolean).slice(0,3).join('、') : '开放、自主、有意义感的环境'}。`
-  });
-
-  report.sections.push({ type: 'h3', text: '天赋抑制器' });
-  report.sections.push({
-    type: 'paragraph',
-    text: `你的天赋在以下环境会枯萎：${a.q19 ? a.q19.split(/[,，。;；]/).filter(Boolean).slice(3,6).join('、') || '僵化、无意义感的环境' : '僵化、被过度管控、缺乏意义感的环境'}。`
-  });
-
-  report.sections.push({ type: 'h3', text: '当前诊断' });
-  report.sections.push({
-    type: 'paragraph',
-    text: `基于你的回答，你当前的状态是：天赋已有觉察，但尚未找到精准的落点。你需要的不是更多的能力，而是更清晰的定位——把能量集中在一个点上，而不是洒在面上。`
-  });
-  report.sections.push({ type: 'divider' });
-
-  // 6. 商业落地路径
-  report.sections.push({ type: 'h2', text: '陆 · 商业落地路径' });
-
-  report.sections.push({ type: 'h3', text: '目标人群画像' });
-  report.sections.push({
-    type: 'paragraph',
-    text: `你的天赋最能帮助的人群：${a.q20 || '未回答'}。这群人的核心痛点是——他们正在经历你曾经走过的路，而你的价值在于，你能帮他们少走弯路。`
-  });
-
-  report.sections.push({ type: 'h3', text: '交付方式建议' });
-  report.sections.push({
-    type: 'paragraph',
-    text: `基于你的天赋特质，建议的交付方式包括：一对一深度咨询（发挥你「看见别人看不到的东西」的能力）、小组工作坊（让更多人感受你的能量场）、内容创作（把你的思考变成可传播的载体）。`
-  });
-
-  report.sections.push({ type: 'h3', text: '最小切口' });
-  report.sections.push({
-    type: 'paragraph',
-    text: `你这周就可以启动的最小切口：${a.q21 || '未回答'}。记住——不需要完美的计划，只需要第一步。完美的计划是行动的敌人。`
-  });
-  report.sections.push({ type: 'divider' });
-
-  // 7. 三年路线图
-  report.sections.push({ type: 'h2', text: '柒 · 三年路线图' });
-
-  report.sections.push({ type: 'h3', text: '第一年 · 启动期' });
-  report.sections.push({
-    type: 'paragraph',
-    text: `关键词：验证、迭代、找到感觉。\n\n用最小切口开始服务第一批用户。不追求规模，追求深度。每个月至少深度服务5个人，积累真实案例和反馈。这个阶段最重要的不是赚多少钱，而是确认你的天赋确实能帮到人，而且他们愿意为此付费。`
-  });
-
-  report.sections.push({ type: 'h3', text: '第二年 · 放大期' });
-  report.sections.push({
-    type: 'paragraph',
-    text: `关键词：体系化、传播、建立口碑。\n\n把第一年的经验提炼成体系。开始内容输出——写文章、录播客、做分享。让别人找到你，而不是你去找别人。这个阶段要建立自己的「话语体系」——用你自己的语言来描述你看到的世界。`
-  });
-
-  report.sections.push({ type: 'h3', text: '第三年 · 自转期' });
-  report.sections.push({
-    type: 'paragraph',
-    text: `关键词：自运转、选择客户、活出天赋。\n\n到这个阶段，你应该已经有了稳定的客户来源和清晰的品牌。重点是学会选择——不是所有人都值得你服务。把精力集中在最能发挥你天赋的客户身上。同时开始培养助手或合作者，让系统能部分自运转。`
-  });
-  report.sections.push({ type: 'divider' });
-
-  // 8. 破局提醒
-  report.sections.push({ type: 'h2', text: '捌 · 破局提醒' });
-
-  report.sections.push({ type: 'h3', text: '三个盲点' });
-  report.sections.push({ type: 'paragraph', text: '一、你可能低估了自己天赋的稀缺性——你觉得"这有什么难的"的事情，对很多人来说是不可企及的能力。' });
-  report.sections.push({ type: 'paragraph', text: '二、你可能在等一个"准备好"的时刻——但天赋不是准备好了才发光的，它在行动中才清晰。' });
-  report.sections.push({ type: 'paragraph', text: '三、你可能把"被认可"当成了天赋的验证——但真正的天赋不需要外界的掌声，它自己在说话。' });
-
-  report.sections.push({ type: 'h3', text: '最大卡点' });
-  report.sections.push({
-    type: 'paragraph',
-    text: `你最大的卡点，很可能不是能力不足，而是方向不清。你已经有了所有的素材——你的热爱、你的痛苦、你的天赋内核——现在需要的，只是做一个选择，然后开始行动。`
-  });
-
-  report.sections.push({ type: 'h3', text: '最重要的一件事' });
-  report.sections.push({
-    type: 'paragraph',
-    text: `这周就做这件事：${a.q21 || '从你的最小切口开始，找一个人，把你的天赋用在他身上，看看会发生什么。'}\n\n不需要宏大叙事。一个小而真的开始，胜过一万个完美的计划。`
-  });
-  report.sections.push({ type: 'divider' });
-
-  // 9. 结语
-  report.sections.push({ type: 'h2', text: '玖 · 结语' });
-  report.sections.push({
-    type: 'paragraph',
-    text: `认识自己是一辈子的事。这八十一分钟不是终点，是一个起点。\n\n你在「观澜」中看到的自己，不是别人眼中的你，也不是你以为的自己——而是那个在忘我的时刻、在痛苦的裂缝中、在被别人需要的瞬间，反复出现的那个你。\n\n天赋不是什么了不起的东西。它只是你活着的方式——如果你对了一件事，整个世界都会为你让路。\n\n水不争而善利万物。你也是。`
-  });
-
-  return report;
-}
-
-function buildTalentPortrait(a) {
-  // 从回答中提取关键意象
-  const flow = extractKeywords(a.q3 || '', 10);
-  const pain = extractKeywords(a.q10 || '', 10);
-  const core = extractKeywords(a.q13 || '', 10);
-  const natural = extractKeywords(a.q17 || '', 10);
-  const water纹 = extractKeywords(a.q7 || '', 10);
-
-  return `如果用东方的意象来描绘你的天赋——
-
-它像${flow.includes('写') || flow.includes('创作') ? '水' : '山间的一脉清泉'}，不急不缓，却有着自己的方向。你在${flow}中找到了水纹的形状——那是从小到大一直流淌在你生命中的东西。
-
-你的天赋不是锋芒毕露的那种。它更像是月光——不刺眼，但能照亮别人看不见的角落。你在${pain}中经历的痛苦，让你的光多了一层厚度。
-
-剥掉所有标签后，你给自己留下的核心是「${core}」。而别人觉得难、你却觉得像呼吸一样自然的事情——${natural}——恰恰是你天赋最真实的样子。
-
-你不需要变成一个更厉害的人。你需要的是，看见自己本来的样子，然后不再躲。`;
-}
-
-// ===== 显示报告（含付费墙） =====
-function displayReport(report) {
-  const container = document.createElement('div');
-  container.className = 'report-container';
-  container.id = 'reportContainer';
-
-  let html = '';
-
-  // 直接显示完整报告
-  html += buildFullReportHTML(report);
-  html += `<button class="download-btn" onclick="downloadReport()">下载完整报告</button>`;
-
-  container.innerHTML = html;
-  chatInner.appendChild(container);
-  scrollToBottom();
-
-  // 保存Markdown版本
-  window._reportMarkdown = buildMarkdownReport(report);
-}
-
-// ===== 构建预览版报告HTML =====
-
-
-// ===== 构建完整报告HTML =====
-function buildFullReportHTML(report) {
-  let html = '';
-  html += `<h1>${report.title}</h1>`;
-  html += `<div class="report-sub">${report.subtitle}</div>`;
-
-  for (const section of report.sections) {
-    switch (section.type) {
-      case 'h2':
-        html += `<h2>${section.text}</h2>`;
-        break;
-      case 'h3':
-        html += `<h3>${section.text}</h3>`;
-        break;
-      case 'paragraph':
-        html += `<p>${section.text.replace(/\n/g, '<br>')}</p>`;
-        break;
-      case 'blockquote':
-        html += `<blockquote>${section.text}</blockquote>`;
-        break;
-      case 'divider':
-        html += '<div class="report-divider">◆ ◆ ◆</div>';
-        break;
-    }
-  }
-  return html;
-}
-
-function displayFullReport(report) {
-  const container = document.createElement('div');
-  container.className = 'report-container';
-  container.id = 'reportContainer';
-
-  let html = buildFullReportHTML(report);
-  html += `<button class="download-btn" onclick="downloadReport()">下载完整报告</button>`;
-
-  container.innerHTML = html;
-  chatInner.appendChild(container);
-  scrollToBottom();
-
-  window._reportMarkdown = buildMarkdownReport(report);
-}
-
-// ===== 构建Markdown报告 =====
-function buildMarkdownReport(report) {
-  let md = `# ${report.title}\n\n`;
-  md += `> ${report.subtitle}\n\n---\n\n`;
-
-  for (const section of report.sections) {
-    switch (section.type) {
-      case 'h2': md += `## ${section.text}\n\n`; break;
-      case 'h3': md += `### ${section.text}\n\n`; break;
-      case 'paragraph': md += `${section.text}\n\n`; break;
-      case 'blockquote': md += `> ${section.text}\n\n`; break;
-      case 'divider': md += `---\n\n`; break;
-    }
-  }
-  return md;
-}
-
-// ===== 下载报告 =====
-function downloadReport() {
-  const md = window._reportMarkdown || '';
-  const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `观澜_天赋定位报告_${new Date().toISOString().slice(0,10)}.md`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
-}
-
-// ===== 语音输入（V9终极版）=====
-function setupVoiceInput() {
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
-  // 检测浏览器是否支持语音
-  if (!SpeechRecognition) {
-    console.log('[语音] 浏览器不支持Web Speech API');
-    // 隐藏麦克风按钮，让用户直接打字
-    micBtn.style.display = 'none';
-    userInput.placeholder = '说说你的想法……';
-    // 友好提示（不用alert，直接在聊天中显示）
-    setTimeout(() => {
-      const tip = document.createElement('div');
-      tip.className = 'msg ai';
-      tip.innerHTML = '💡 <strong>小提示</strong><br><br>当前浏览器（微信内置浏览器）不支持语音输入。<br><br>👉 <strong>方法1</strong>：复制此链接，用【Chrome浏览器】打开，即可语音输入<br>👉 <strong>方法2</strong>：直接在这里打字也完全OK，不影响效果<br><br>放心继续，文字输入一样能完成测评～';
-      tip.style.fontSize = '13px';
-      chatInner.appendChild(tip);
-      chatArea.scrollTop = chatArea.scrollHeight;
-    }, 800);
-    return;
-  }
-  
-  console.log('[语音] Web Speech API 可用 ✓');
-
-  let isRecording = false;
-  let recognition = null;
-  let autoSendTimer = null;
-
-  function createRecognition() {
-    const rec = new SpeechRecognition();
-    rec.lang = 'zh-CN';
-    rec.continuous = true;
-    rec.interimResults = true;
-    rec.maxAlternatives = 1;
-
-    rec.onresult = (event) => {
-      let interim = '';
-      let finalText = '';
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const t = event.results[i][0].transcript;
-        if (event.results[i].isFinal) { finalText += t; }
-        else { interim += t; }
-      }
-
-      if (interim) {
-        interimText.style.display = 'block';
-        interimText.textContent = '🎤 ' + interim;
-        interimText.style.color = 'rgba(232,230,240,0.6)';
-      }
-
-      if (finalText) {
-        userInput.value = (userInput.value + finalText).trim();
-        userInput.style.height = 'auto';
-        userInput.style.height = Math.min(userInput.scrollHeight, 120) + 'px';
-        sendBtn.disabled = userInput.value.trim() === '';
-        
-        interimText.textContent = '✅ ' + finalText;
-        interimText.style.color = 'var(--accent-gold)';
-        
-        if (autoSendTimer) clearTimeout(autoSendTimer);
-        autoSendTimer = setTimeout(() => {
-          if (userInput.value.trim() && !APP_STATE.isTyping && !APP_STATE.isProcessing) {
-            sendBtn.click();
-          }
-        }, 2500);
-      }
-    };
-
-    rec.onerror = (event) => {
-      console.warn('[语音] error:', event.error);
-      if (event.error === 'not-allowed') {
-        interimText.style.display = 'block';
-        interimText.textContent = '❌ 请允许麦克风权限';
-        interimText.style.color = '#ff6b6b';
-      } else if (event.error === 'no-speech') {
-        interimText.style.display = 'block';
-        interimText.textContent = '🔇 没听到声音，请说话';
-        interimText.style.color = 'var(--text-secondary)';
-        if (isRecording) {
-          setTimeout(() => { try { rec.stop(); rec.start(); } catch(e){} }, 1000);
-          return;
-        }
-      } else if (event.error === 'aborted') {
-        return;
-      } else {
-        interimText.style.display = 'block';
-        interimText.textContent = '⚠️ 语音出错，请直接打字';
-        interimText.style.color = '#ff6b6b';
-      }
-      isRecording = false;
-      micBtn.classList.remove('recording');
-      setTimeout(() => { interimText.style.display = 'none'; }, 4000);
-    };
-
-    rec.onend = () => {
-      isRecording = false;
-      micBtn.classList.remove('recording');
-      if (userInput.value.trim() && !autoSendTimer) {
-        autoSendTimer = setTimeout(() => {
-          if (userInput.value.trim() && !APP_STATE.isTyping && !APP_STATE.isProcessing) {
-            sendBtn.click();
-          }
-        }, 2000);
-      }
-      setTimeout(() => {
-        if (!interimText.textContent.includes('❌') && !interimText.textContent.includes('⚠️')) {
-          interimText.style.display = 'none';
-          interimText.textContent = '';
-        }
-      }, 3000);
-    };
-
-    return rec;
-  }
-
-  // ★ 核心修复：只监听click，不监听touchstart（touchstart会阻止click）
-  micBtn.addEventListener('click', function(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    if (APP_STATE.isTyping || APP_STATE.isProcessing) return;
-    if (autoSendTimer) { clearTimeout(autoSendTimer); autoSendTimer = null; }
-    
-    if (isRecording) {
-      // 停止
-      isRecording = false;
-      micBtn.classList.remove('recording');
-      interimText.style.display = 'block';
-      interimText.textContent = '⏳ 识别中…';
-      interimText.style.color = 'var(--text-secondary)';
-      try { recognition.stop(); } catch(err) {}
-    } else {
-      // 开始
-      isRecording = true;
-      micBtn.classList.add('recording');
-      interimText.style.display = 'block';
-      interimText.textContent = '🎤 正在聆听…再点一次结束';
-      interimText.style.color = 'var(--accent-gold)';
-      
-      try {
-        if (recognition) { try { recognition.abort(); } catch(e){} }
-        recognition = createRecognition();
-        recognition.start();
-      } catch (err) {
-        isRecording = false;
-        micBtn.classList.remove('recording');
-        interimText.textContent = '⚠️ 启动失败，请重试或打字';
-        interimText.style.color = '#ff6b6b';
-        setTimeout(() => { interimText.style.display = 'none'; }, 3000);
-      }
-    }
-  });
-}
-
-// ===== 进度持久化 =====
-function saveProgress() {
-  const state = {
-    currentStage: APP_STATE.currentStage,
-    currentQuestion: APP_STATE.currentQuestion,
-    answers: APP_STATE.answers,
-    waitingForStart: APP_STATE.waitingForStart,
-    reportGenerated: APP_STATE.reportGenerated,
-    unlocked: true,
-    timestamp: Date.now()
-  };
-  try {
-    localStorage.setItem('guanlan_progress', JSON.stringify(state));
-  } catch (e) {}
-}
-
-function loadProgress() {
-  try {
-    const saved = localStorage.getItem('guanlan_progress');
-    if (!saved) return;
-
-    const state = JSON.parse(saved);
-    // 检查是否在7天内
-    if (Date.now() - state.timestamp > 7 * 24 * 60 * 60 * 1000) {
-      localStorage.removeItem('guanlan_progress');
-      return;
-    }
-
-    APP_STATE.currentStage = state.currentStage;
-    APP_STATE.currentQuestion = state.currentQuestion;
-    APP_STATE.answers = state.answers || {};
-    APP_STATE.waitingForStart = state.waitingForStart || false;
-    APP_STATE.reportGenerated = state.reportGenerated || false;
-    APP_STATE.unlocked = true;
-  } catch (e) {
-    localStorage.removeItem('guanlan_progress');
-  }
-}
-
-function restoreProgress() {
-  const { currentStage, currentQuestion, answers, waitingForStart, reportGenerated } = APP_STATE;
-
-  if (waitingForStart) {
-    showOpening();
-    return;
-  }
-
-  if (currentStage >= 0 && currentStage < STAGES.length) {
-    updateProgress(currentStage);
-
-    // 重建已有的对话
-    addAIMessageNoAnim('对话已恢复，让我们继续。');
-
-    // 重建之前的阶段小结
-    for (let s = 0; s < currentStage; s++) {
-      const stage = STAGES[s];
-      const stageAnswers = stage.questions.map(q => answers[q.key] || '');
-      if (stageAnswers.some(Boolean)) {
-        addSummaryCard(`${stage.label} · 小结`, createSummary(stage, stageAnswers));
-      }
-    }
-
-    if (currentQuestion > 0) {
-      // 显示当前问题
-      askQuestion(currentStage, currentQuestion);
-    } else {
-      // 刚进入新阶段
-      addAIMessage(STAGES[currentStage].transition, () => {
-        setTimeout(() => askQuestion(currentStage, 0), 600);
-      });
-    }
-  } else if (reportGenerated) {
-    updateProgress(5);
-    if (APP_STATE.unlocked) {
-      addAIMessageNoAnim('欢迎回来。你的完整天赋定位报告在这里。');
-    } else {
-      addAIMessageNoAnim('欢迎回来。这是你的天赋定位报告，部分精彩内容已为你展示。');
-    }
-    const report = buildReport();
-    displayReport(report);
-  }
-}
-
-function addAIMessageNoAnim(text) {
-  const el = document.createElement('div');
-  el.className = 'msg ai';
-  el.textContent = text;
-  chatInner.appendChild(el);
-  scrollToBottom();
-}
-
-// ===== 启动 =====
-document.addEventListener('DOMContentLoaded', init);
-</script>
 </body>
 </html>
