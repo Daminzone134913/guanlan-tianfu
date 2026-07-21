@@ -683,6 +683,19 @@ html, body {
   opacity: 0.3;
   cursor: not-allowed;
 }
+
+/* 微信引导浮层 */
+.wechat-guide {
+  display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.85); z-index: 9999;
+  flex-direction: column; align-items: center; justify-content: center;
+  color: #fff; text-align: center; padding: 20px;
+}
+.wechat-guide.show { display: flex; }
+.wechat-guide .arrow { font-size: 60px; animation: bounce 1s infinite; margin-bottom: 20px; }
+.wechat-guide p { font-size: 16px; line-height: 2; margin: 8px 0; }
+.wechat-guide .close-guide { margin-top: 24px; padding: 10px 28px; background: var(--accent-gold); border: none; border-radius: 20px; color: #fff; font-size: 15px; }
+@keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
 </style>
 
 <!-- 微信分享优化 -->
@@ -691,8 +704,28 @@ html, body {
 <meta property="og:type" content="website">
 <meta name="format-detection" content="telephone=no">
 <meta http-equiv="Cache-Control" content="no-cache">
+
+<!-- PWA & Mobile Optimization -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="观澜">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0a0e27">
+<meta name="format-detection" content="telephone=no">
+<meta name="x5-orientation" content="portrait">
+<meta name="x5-page-mode" content="app">
+<link rel="manifest" href="manifest.json">
 </head>
 <body>
+<div class="wechat-guide" id="wechatGuide">
+  <div class="arrow">↗</div>
+  <p><strong>语音输入需要浏览器支持</strong></p>
+  <p>点击右上角 ··· → "在浏览器中打开"</p>
+  <p>即可获得完整语音体验</p>
+  <p style="font-size:13px;opacity:0.6;margin-top:12px;">当然，直接在这里打字也完全OK</p>
+  <button class="close-guide" onclick="this.parentElement.classList.remove('show')">我知道了</button>
+</div>
+
 
 <!-- Background Particles -->
 <div class="bg-particles" id="bgParticles"></div>
@@ -842,6 +875,22 @@ const progressBar = document.getElementById('progressBar');
 
 // ===== 初始化 =====
 function init() {
+  // 检测微信浏览器，显示语音引导
+  const ua = navigator.userAgent.toLowerCase();
+  const isWeChat = ua.includes('micromessenger');
+  const isAndroid = ua.includes('android');
+  const hasVoice = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+  
+  if (isWeChat && isAndroid && !hasVoice) {
+    // 微信Android + 不支持语音 → 首次访问显示引导
+    if (!localStorage.getItem('wechat_guide_shown')) {
+      setTimeout(() => {
+        document.getElementById('wechatGuide').classList.add('show');
+        localStorage.setItem('wechat_guide_shown', '1');
+      }, 2000);
+    }
+  }
+
   createParticles();
   setupInputHandlers();
   setupVoiceInput();
@@ -1502,167 +1551,158 @@ function downloadReport() {
   URL.revokeObjectURL(url);
 }
 
-// ===== 语音输入 =====
+// ===== 语音输入（V9终极版）=====
 function setupVoiceInput() {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
+  // 检测浏览器是否支持语音
   if (!SpeechRecognition) {
-    console.warn('[语音] 当前浏览器不支持Web Speech API');
-    micBtn.classList.add('unsupported');
-    micBtn.title = '当前浏览器/微信版本不支持语音识别';
-    micBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
-    
-    // 显示提示信息
+    console.log('[语音] 浏览器不支持Web Speech API');
+    // 隐藏麦克风按钮，让用户直接打字
+    micBtn.style.display = 'none';
+    userInput.placeholder = '说说你的想法……';
+    // 友好提示（不用alert，直接在聊天中显示）
     setTimeout(() => {
-      alert('💡 提示：当前浏览器不支持语音输入\n\n建议：\n1. 使用Chrome浏览器\n2. 或升级微信到最新版本\n3. 或直接输入文字');
-    }, 500);
+      const tip = document.createElement('div');
+      tip.className = 'msg ai';
+      tip.innerHTML = '💡 <strong>小提示</strong><br><br>当前浏览器（微信内置浏览器）不支持语音输入。<br><br>👉 <strong>方法1</strong>：复制此链接，用【Chrome浏览器】打开，即可语音输入<br>👉 <strong>方法2</strong>：直接在这里打字也完全OK，不影响效果<br><br>放心继续，文字输入一样能完成测评～';
+      tip.style.fontSize = '13px';
+      chatInner.appendChild(tip);
+      chatArea.scrollTop = chatArea.scrollHeight;
+    }, 800);
     return;
   }
   
-  console.log('[语音] Web Speech API 可用');
-
-  const recognition = new SpeechRecognition();
-  recognition.lang = 'zh-CN';
-  recognition.continuous = true;  // 持续录音，直到手动停止
-  recognition.interimResults = true;
-  recognition.maxAlternatives = 1;
+  console.log('[语音] Web Speech API 可用 ✓');
 
   let isRecording = false;
+  let recognition = null;
+  let autoSendTimer = null;
 
-  function startRecording(e) {
-    e.preventDefault();
-    if (APP_STATE.isTyping || APP_STATE.isProcessing) return;
-    isRecording = true;
-    micBtn.classList.add('recording');
-    
-    // 显示录音状态
-    const statusEl = micBtn.querySelector('.mic-status');
-    if (statusEl) statusEl.style.display = 'block';
-    
-    interimText.style.display = 'block';
-    interimText.textContent = '🎤 正在聆听，请说话……（再次点击按钮结束）';
-    console.log('[语音] 开始录音');
+  function createRecognition() {
+    const rec = new SpeechRecognition();
+    rec.lang = 'zh-CN';
+    rec.continuous = true;
+    rec.interimResults = true;
+    rec.maxAlternatives = 1;
 
-    try {
-      recognition.start();
-    } catch (err) {
-      // 已经在运行
-    }
-  }
-
-  function stopRecording(e) {
-    e.preventDefault();
-    if (!isRecording) return;
-    isRecording = false;
-    micBtn.classList.remove('recording');
-    
-    // 隐藏录音状态
-    const statusEl = micBtn.querySelector('.mic-status');
-    if (statusEl) statusEl.style.display = 'none';
-
-    interimText.textContent = '⏳ 正在识别，请稍候……';
-    console.log('[语音] 停止录音，等待识别结果');
-
-    try {
-      recognition.stop();
-    } catch (err) {}
-    
-    setTimeout(() => {
-      interimText.style.display = 'none';
-      interimText.textContent = '';
-    }, 2000);
-  }
-
-  recognition.onresult = (event) => {
-    let interim = '';
-    let final = '';
-    for (let i = event.resultIndex; i < event.results.length; i++) {
-      const transcript = event.results[i][0].transcript;
-      if (event.results[i].isFinal) {
-        final += transcript;
-      } else {
-        interim += transcript;
+    rec.onresult = (event) => {
+      let interim = '';
+      let finalText = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const t = event.results[i][0].transcript;
+        if (event.results[i].isFinal) { finalText += t; }
+        else { interim += t; }
       }
-    }
 
-    if (interim) {
-      interimText.textContent = '🎤 ' + interim;
-      console.log('[语音] 临时结果:', interim);
-    }
-    if (final) {
-      console.log('[语音] 最终结果:', final);
-      userInput.value = (userInput.value + final).trim();
-      sendBtn.disabled = userInput.value.trim() === '';
-      userInput.style.height = 'auto';
-      userInput.style.height = Math.min(userInput.scrollHeight, 120) + 'px';
-      interimText.textContent = '✅ 识别完成：' + final;
-      
-      // 2秒后自动发送，给用户确认时间
-      setTimeout(() => {
-        if (userInput.value.trim()) {
-          console.log('[语音] 自动发送');
-          sendBtn.click();
+      if (interim) {
+        interimText.style.display = 'block';
+        interimText.textContent = '🎤 ' + interim;
+        interimText.style.color = 'rgba(232,230,240,0.6)';
+      }
+
+      if (finalText) {
+        userInput.value = (userInput.value + finalText).trim();
+        userInput.style.height = 'auto';
+        userInput.style.height = Math.min(userInput.scrollHeight, 120) + 'px';
+        sendBtn.disabled = userInput.value.trim() === '';
+        
+        interimText.textContent = '✅ ' + finalText;
+        interimText.style.color = 'var(--accent-gold)';
+        
+        if (autoSendTimer) clearTimeout(autoSendTimer);
+        autoSendTimer = setTimeout(() => {
+          if (userInput.value.trim() && !APP_STATE.isTyping && !APP_STATE.isProcessing) {
+            sendBtn.click();
+          }
+        }, 2500);
+      }
+    };
+
+    rec.onerror = (event) => {
+      console.warn('[语音] error:', event.error);
+      if (event.error === 'not-allowed') {
+        interimText.style.display = 'block';
+        interimText.textContent = '❌ 请允许麦克风权限';
+        interimText.style.color = '#ff6b6b';
+      } else if (event.error === 'no-speech') {
+        interimText.style.display = 'block';
+        interimText.textContent = '🔇 没听到声音，请说话';
+        interimText.style.color = 'var(--text-secondary)';
+        if (isRecording) {
+          setTimeout(() => { try { rec.stop(); rec.start(); } catch(e){} }, 1000);
+          return;
         }
-      }, 2000);
-    }
-  };
-
-  recognition.onerror = (event) => {
-    console.warn('Speech recognition error:', event.error);
-    isRecording = false;
-    micBtn.classList.remove('recording');
-    
-    // 隐藏录音状态
-    const statusEl = micBtn.querySelector('.mic-status');
-    if (statusEl) statusEl.style.display = 'none';
-    
-    if (event.error === 'not-allowed') {
-      interimText.textContent = '❌ 请允许麦克风权限（点击地址栏左侧图标）';
-      console.error('[语音] 麦克风权限被拒绝');
-    } else if (event.error === 'no-speech') {
-      interimText.textContent = '🔇 没有检测到语音，请重试';
-    } else {
-      interimText.textContent = '⚠️ 识别失败，请手动输入或重试';
-    }
-    setTimeout(() => {
-      interimText.style.display = 'none';
-      interimText.textContent = '';
-    }, 3000);
-  };
-
-  recognition.onend = () => {
-    isRecording = false;
-    micBtn.classList.remove('recording');
-    
-    // 隐藏录音状态
-    const statusEl = micBtn.querySelector('.mic-status');
-    if (statusEl) statusEl.style.display = 'none';
-    
-    setTimeout(() => {
-      if (interimText.textContent && !interimText.textContent.includes('✅') && !interimText.textContent.includes('❌')) {
-        interimText.style.display = 'none';
-        interimText.textContent = '';
+      } else if (event.error === 'aborted') {
+        return;
+      } else {
+        interimText.style.display = 'block';
+        interimText.textContent = '⚠️ 语音出错，请直接打字';
+        interimText.style.color = '#ff6b6b';
       }
-    }, 2000);
-  };
+      isRecording = false;
+      micBtn.classList.remove('recording');
+      setTimeout(() => { interimText.style.display = 'none'; }, 4000);
+    };
 
-  // Click to toggle recording (点击切换模式)
-  micBtn.addEventListener('click', (e) => {
+    rec.onend = () => {
+      isRecording = false;
+      micBtn.classList.remove('recording');
+      if (userInput.value.trim() && !autoSendTimer) {
+        autoSendTimer = setTimeout(() => {
+          if (userInput.value.trim() && !APP_STATE.isTyping && !APP_STATE.isProcessing) {
+            sendBtn.click();
+          }
+        }, 2000);
+      }
+      setTimeout(() => {
+        if (!interimText.textContent.includes('❌') && !interimText.textContent.includes('⚠️')) {
+          interimText.style.display = 'none';
+          interimText.textContent = '';
+        }
+      }, 3000);
+    };
+
+    return rec;
+  }
+
+  // ★ 核心修复：只监听click，不监听touchstart（touchstart会阻止click）
+  micBtn.addEventListener('click', function(e) {
     e.preventDefault();
+    e.stopPropagation();
+    
     if (APP_STATE.isTyping || APP_STATE.isProcessing) return;
+    if (autoSendTimer) { clearTimeout(autoSendTimer); autoSendTimer = null; }
     
     if (isRecording) {
-      stopRecording(e);
+      // 停止
+      isRecording = false;
+      micBtn.classList.remove('recording');
+      interimText.style.display = 'block';
+      interimText.textContent = '⏳ 识别中…';
+      interimText.style.color = 'var(--text-secondary)';
+      try { recognition.stop(); } catch(err) {}
     } else {
-      startRecording(e);
+      // 开始
+      isRecording = true;
+      micBtn.classList.add('recording');
+      interimText.style.display = 'block';
+      interimText.textContent = '🎤 正在聆听…再点一次结束';
+      interimText.style.color = 'var(--accent-gold)';
+      
+      try {
+        if (recognition) { try { recognition.abort(); } catch(e){} }
+        recognition = createRecognition();
+        recognition.start();
+      } catch (err) {
+        isRecording = false;
+        micBtn.classList.remove('recording');
+        interimText.textContent = '⚠️ 启动失败，请重试或打字';
+        interimText.style.color = '#ff6b6b';
+        setTimeout(() => { interimText.style.display = 'none'; }, 3000);
+      }
     }
   });
-
-  // Also support touch for mobile
-  micBtn.addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    // 不做任何事，等click事件处理
-  }, { passive: false });
 }
 
 // ===== 进度持久化 =====
