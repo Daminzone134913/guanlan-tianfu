@@ -1507,16 +1507,25 @@ function setupVoiceInput() {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
   if (!SpeechRecognition) {
+    console.warn('[语音] 当前浏览器不支持Web Speech API');
     micBtn.classList.add('unsupported');
-    micBtn.title = '当前浏览器不支持语音识别，请手动输入文字';
+    micBtn.title = '当前浏览器/微信版本不支持语音识别';
     micBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+    
+    // 显示提示信息
+    setTimeout(() => {
+      alert('💡 提示：当前浏览器不支持语音输入\n\n建议：\n1. 使用Chrome浏览器\n2. 或升级微信到最新版本\n3. 或直接输入文字');
+    }, 500);
     return;
   }
+  
+  console.log('[语音] Web Speech API 可用');
 
   const recognition = new SpeechRecognition();
   recognition.lang = 'zh-CN';
-  recognition.continuous = false;
+  recognition.continuous = true;  // 持续录音，直到手动停止
   recognition.interimResults = true;
+  recognition.maxAlternatives = 1;
 
   let isRecording = false;
 
@@ -1531,7 +1540,8 @@ function setupVoiceInput() {
     if (statusEl) statusEl.style.display = 'block';
     
     interimText.style.display = 'block';
-    interimText.textContent = '🎤 正在聆听，请说话……';
+    interimText.textContent = '🎤 正在聆听，请说话……（再次点击按钮结束）';
+    console.log('[语音] 开始录音');
 
     try {
       recognition.start();
@@ -1550,7 +1560,8 @@ function setupVoiceInput() {
     const statusEl = micBtn.querySelector('.mic-status');
     if (statusEl) statusEl.style.display = 'none';
 
-    interimText.textContent = '⏳ 识别中……';
+    interimText.textContent = '⏳ 正在识别，请稍候……';
+    console.log('[语音] 停止录音，等待识别结果');
 
     try {
       recognition.stop();
@@ -1576,20 +1587,23 @@ function setupVoiceInput() {
 
     if (interim) {
       interimText.textContent = '🎤 ' + interim;
+      console.log('[语音] 临时结果:', interim);
     }
     if (final) {
+      console.log('[语音] 最终结果:', final);
       userInput.value = (userInput.value + final).trim();
       sendBtn.disabled = userInput.value.trim() === '';
       userInput.style.height = 'auto';
       userInput.style.height = Math.min(userInput.scrollHeight, 120) + 'px';
       interimText.textContent = '✅ 识别完成：' + final;
       
-      // 自动发送
+      // 2秒后自动发送，给用户确认时间
       setTimeout(() => {
         if (userInput.value.trim()) {
+          console.log('[语音] 自动发送');
           sendBtn.click();
         }
-      }, 1000);
+      }, 2000);
     }
   };
 
@@ -1603,7 +1617,8 @@ function setupVoiceInput() {
     if (statusEl) statusEl.style.display = 'none';
     
     if (event.error === 'not-allowed') {
-      interimText.textContent = '❌ 请在浏览器设置中允许麦克风权限';
+      interimText.textContent = '❌ 请允许麦克风权限（点击地址栏左侧图标）';
+      console.error('[语音] 麦克风权限被拒绝');
     } else if (event.error === 'no-speech') {
       interimText.textContent = '🔇 没有检测到语音，请重试';
     } else {
